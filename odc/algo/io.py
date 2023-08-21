@@ -246,7 +246,6 @@ def load_with_native_transform(
         extra_args.update(kw)
 
         yy = _apply_native_transform_1(
-            _apply_native_transform_1(
                 xx,
                 geobox,
                 native_transform,
@@ -258,9 +257,13 @@ def load_with_native_transform(
             )
 
         _xx += [
-        xr_reproject(
-            yy, geobox, resampling=resampling, chunks=chunks, **extra_args,
-        )  # type: ignore
+            xr_reproject(
+                yy,
+                geobox,
+                resampling=resampling,
+                chunks=chunks,
+                **extra_args,
+            )  # type: ignore
         ]
 
     if len(_xx) == 1:

@@ -18,7 +18,8 @@ from datacube.testutils.io import native_geobox
 from odc.geo.geobox import GeoBox, pad as gbox_pad
 from ._grouper import group_by_nothing, solar_offset
 from ._masking import _max_fuser, _nodata_fuser, _or_fuser, enum_to_bool, mask_cleanup
-from ._warp import xr_reproject
+from odc.geo.geobox import GeoBox
+from odc.geo.xr import xr_reproject
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Iterable, Sequence
@@ -157,9 +158,6 @@ def _apply_native_transform_1(
     native_transform: Callable[[xr.Dataset], xr.Dataset],
     groupby: Optional[str] = None,
     fuser: Optional[Callable[[xr.Dataset], xr.Dataset]] = None,
-    resampling: str = "nearest",
-    chunks: Optional[Dict[str, int]] = None,
-    **kwargs,
 ) -> xr.Dataset:
     xx = native_transform(xx)
 
@@ -168,11 +166,7 @@ def _apply_native_transform_1(
             fuser = _nodata_fuser  # type: ignore
         xx = xx.groupby(groupby).map(fuser)
 
-    _chunks = None
-    if chunks is not None:
-        _chunks = tuple(chunks.get(ax, -1) for ax in ("y", "x"))
-
-    return xr_reproject(xx, geobox, chunks=_chunks, resampling=resampling, **kwargs)  # type: ignore
+    return xx
 
 
 def load_with_native_transform(
@@ -251,7 +245,7 @@ def load_with_native_transform(
         )
         extra_args.update(kw)
 
-        _xx += [
+        yy = _apply_native_transform_1(
             _apply_native_transform_1(
                 xx,
                 geobox,
@@ -261,21 +255,21 @@ def load_with_native_transform(
                 resampling=resampling,
                 groupby=groupby,
                 fuser=fuser,
-                chunks=chunks,
-                **extra_args,
             )
+
+        _xx += [
+        xr_reproject(
+            yy, geobox, resampling=resampling, chunks=chunks, **extra_args,
+        )  # type: ignore
         ]
 
     if len(_xx) == 1:
         xx = _xx[0]
     else:
-        sources = group_by_nothing(list(dss), solar_offset(geobox.extent))
-        xx = xr.concat(_xx, sources.dims[0])  # type: ignore
+        xx = xr.concat(_xx, _xx[0].dims[0])  # type: ignore
         if groupby != "idx":
             xx = xx.groupby(groupby).map(fuser)
-
     # TODO: probably want to replace spec MultiIndex with just `time` component
-
     return xx
 
 

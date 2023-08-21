@@ -45,11 +45,7 @@ def compute_native_load_geobox(
     """
     native: GeoBox = native_geobox(ds, basis=band)
     if buffer is None:
-<<<<<<< HEAD
-        buffer = 10 * cast("float", max(map(abs, native.resolution)))  # type: ignore
-=======
         buffer = 10 * cast(float, max(map(abs, (native.resolution.y, native.resolution.x))))  # type: ignore
->>>>>>> 4e984c0 (update to datacube 1.9 and odc-geo)
 
     assert native.crs is not None
     return GeoBox.from_geopolygon(
@@ -104,28 +100,17 @@ def _split_by_grid(xx: xr.DataArray) -> list[xr.DataArray]:
     return [extract(grid_id, ii) for grid_id, ii in xx.groupby(xx.grid).groups.items()]
 
 
-# pylint: disable=too-many-arguments, too-many-locals
-def _load_with_native_transform_1(
+def _native_load_1(
     sources: xr.DataArray,
     bands: tuple[str, ...],
     geobox: GeoBox,
-    native_transform: Callable[[xr.Dataset], xr.Dataset],
-    optional_bands: tuple[str, ...] | None = None,
-    basis: str | None = None,
-    groupby: str | None = None,
-    fuser: Callable[[xr.Dataset], xr.Dataset] | None = None,
-    resampling: str = "nearest",
-    chunks: dict[str, int] | None = None,
-    load_chunks: dict[str, int] | None = None,
-    pad: int | None = None,
-    **kwargs,
+    optional_bands: Optional[Tuple[str, ...]] = None,
+    basis: Optional[str] = None,
+    load_chunks: Optional[Dict[str, int]] = None,
+    pad: Optional[int] = None,
 ) -> xr.Dataset:
     if basis is None:
         basis = bands[0]
-
-    if load_chunks is None:
-        load_chunks = chunks
-
     (ds,) = sources.data[0]
     load_geobox = compute_native_load_geobox(geobox, ds, basis)
     if pad is not None:
@@ -141,6 +126,41 @@ def _load_with_native_transform_1(
             else:
                 mm.update(om)
     xx = Datacube.load_data(sources, load_geobox, mm, dask_chunks=load_chunks)
+    return xx
+
+
+def native_load(
+    dss: Sequence[Dataset],
+    bands: Sequence[str],
+    geobox: GeoBox,
+    basis: Optional[str] = None,
+    load_chunks: Optional[Dict[str, int]] = None,
+    pad: Optional[int] = None,
+):
+    sources = group_by_nothing(list(dss), solar_offset(geobox.extent))
+    for srcs in _split_by_grid(sources):
+        _xx = _native_load_1(
+            srcs,
+            tuple(bands),
+            geobox,
+            basis=basis,
+            load_chunks=load_chunks,
+            pad=pad,
+        )
+        yield _xx
+
+
+# pylint: disable=too-many-arguments, too-many-locals
+def _apply_native_transform_1(
+    xx: xr.Dataset,
+    geobox: GeoBox,
+    native_transform: Callable[[xr.Dataset], xr.Dataset],
+    groupby: Optional[str] = None,
+    fuser: Optional[Callable[[xr.Dataset], xr.Dataset]] = None,
+    resampling: str = "nearest",
+    chunks: Optional[Dict[str, int]] = None,
+    **kwargs,
+) -> xr.Dataset:
     xx = native_transform(xx)
 
     if groupby is not None:
@@ -216,13 +236,15 @@ def load_with_native_transform(
     if chunks is None:
         chunks = kw.pop("dask_chunks", None)
 
-    sources = group_by_nothing(list(dss), solar_offset(geobox.extent))
+    if load_chunks is None:
+        load_chunks = chunks
+
     _xx = []
     # fail if the intended transform not available
     # to avoid any unexpected results
-    for srcs in _split_by_grid(sources):
+    for xx in native_load(dss, bands, geobox, basis, load_chunks, pad):
         extra_args = choose_transform_path(
-            srcs.crs,
+            xx.crs,
             geobox.crs,
             kw.pop("transform_code"),
             kw.pop("area_of_interest"),
@@ -230,9 +252,8 @@ def load_with_native_transform(
         extra_args.update(kw)
 
         _xx += [
-            _load_with_native_transform_1(
-                srcs,
-                tuple(bands),
+            _apply_native_transform_1(
+                xx,
                 geobox,
                 native_transform,
                 optional_bands=tuple(optional_bands),
@@ -241,8 +262,6 @@ def load_with_native_transform(
                 groupby=groupby,
                 fuser=fuser,
                 chunks=chunks,
-                load_chunks=load_chunks,
-                pad=pad,
                 **extra_args,
             )
         ]
@@ -250,6 +269,7 @@ def load_with_native_transform(
     if len(_xx) == 1:
         xx = _xx[0]
     else:
+        sources = group_by_nothing(list(dss), solar_offset(geobox.extent))
         xx = xr.concat(_xx, sources.dims[0])  # type: ignore
         if groupby != "idx":
             xx = xx.groupby(groupby).map(fuser)

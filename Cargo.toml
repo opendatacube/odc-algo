@@ -1,0 +1,16 @@
+[package]
+name = "odc-algo-backend"
+version = "0.2.0"
+authors = ["kieran"]
+edition = "2018"
+
+[lib]
+name = "backend"
+crate-type = ["cdylib"]
+
+[dependencies]
+pyo3 = { version = "0.19.2", features = ["extension-module"] }
+numpy = "0.19.0"
+ndarray= { version = "0.15.6", features = ["rayon"] }
+rayon = "1.7.0"
+num-traits = "0.2"

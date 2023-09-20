@@ -33,6 +33,7 @@ var/
 *.manifest
 *.spec
 
+<<<<<<< HEAD
 # Installer logs
 pip-log.txt
 pip-delete-this-directory.txt
@@ -81,3 +82,5 @@ docs/notebooks/
 .run/
 
 docker/wheels/
+
+*.pyc

@@ -27,18 +27,21 @@ pip install odc-algo
 
 ## Usage
 
-## Building
+Building
+--------
 
-1. Install the Python build tool. `python -m pip install build`
-2. Build this package. `python -m build`
+1. Install Rust. Follow instructions at https://www.rust-lang.org/tools/install
+2. Install the python build tool. `pip install build`
+3. Build the package. `python -m build`
 
 
-## Development
+Development
+-------
 
-1. Follow build instructions
-2. Install as dev `pip install -e .[dev]`
+1. Install Rust. Follow instructions at https://www.rust-lang.org/tools/install
+3. Install as dev `pip install -e .[dev]`
 
-Alternatively, install with the whl file.
+This will still compile the rust code, but without optimisations. Which may cause the algorithms to be VERY slow.
 
 
 # Tasks

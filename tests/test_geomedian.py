@@ -30,8 +30,6 @@ def test_geomedian_with_mads(xr_regression, datadir):
 def xr_regression(request, datadir, original_datadir):
     """
     Inspired by pytest-regressions, but for xarray datasets
-
-    TODO: Work out how to extend pytest-regressions
     """
     name = request.node.name
 

@@ -14,13 +14,7 @@ import numpy as np
 from collections.abc import Iterable
 
 
-def geomedian(in_array, **kwargs):
-
-    kwargs.setdefault("num_threads", 1)
-    kwargs.setdefault("eps", 1e-6)
-    kwargs.setdefault("maxiters", 1000)
-    kwargs.setdefault("scale", 1.0)
-    kwargs.setdefault("offset", 0.0)
+def geomedian(in_array, nodata=None, num_threads=1, eps=1e-6, maxiters=1000, scale=1.0, offset=0.0):
 
     if len(in_array.shape) != 4:
         raise ValueError(
@@ -28,14 +22,17 @@ def geomedian(in_array, **kwargs):
         )
 
     if in_array.dtype == np.float32:
-        kwargs.setdefault("nodata", np.nan)
-        return _geomedian(in_array, kwargs["maxiters"], kwargs["eps"], kwargs["num_threads"], kwargs["scale"], kwargs["offset"])
+        if nodata is None:
+            nodata = np.nan
+        return _geomedian(in_array, maxiters, eps, num_threads, scale, offset)
     elif in_array.dtype == np.int16:
-        kwargs.setdefault("nodata", -1)
-        return _geomedian_int16(in_array, kwargs["maxiters"], kwargs["eps"], kwargs["num_threads"], kwargs["nodata"], kwargs["scale"], kwargs["offset"])
+        if nodata is None:
+            nodata = -1
+        return _geomedian_int16(in_array, maxiters, eps, num_threads, nodata, scale, offset)
     elif in_array.dtype == np.uint16:
-        kwargs.setdefault("nodata", 0)
-        return _geomedian_uint16(in_array, kwargs["maxiters"], kwargs["eps"], kwargs["num_threads"], kwargs["nodata"], kwargs["scale"], kwargs["offset"])
+        if nodata is None:
+            nodata = 0
+        return _geomedian_uint16(in_array, maxiters, eps, num_threads, nodata, scale, offset)
     else:
         raise TypeError(f"in_array: expected dtype to be one of {np.float32}, {np.int16}, {np.uint16}, found {in_array.dtype}.")
 

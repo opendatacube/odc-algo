@@ -91,14 +91,14 @@ def choose_transform_path(
 
 
 def _split_by_grid(xx: xr.DataArray) -> List[xr.DataArray]:
-    def extract(ii):
+    def extract(grid_id, ii):
         yy = xx[ii]
-        crs = xx.grid2crs[xx.grid.data[0]]
+        crs = xx.grid2crs[grid_id]
         yy.attrs.update(crs=crs)
         yy.attrs.pop("grid2crs", None)
         return yy
 
-    return [extract(ii) for ii in xx.groupby(xx.grid).groups.values()]
+    return [extract(grid_id, ii) for grid_id, ii in xx.groupby(xx.grid).groups.items()]
 
 
 # pylint: disable=too-many-arguments, too-many-locals

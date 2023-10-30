@@ -14,10 +14,6 @@ from ._dask import (
 from ._dask_stream import dask_compute_stream, seq_to_bags
 from ._geomedian import (
     geomedian_with_mads,
-    int_geomedian,
-    int_geomedian_np,
-    reshape_for_geomedian,
-    xr_geomedian,
 )
 from ._masking import (
     binary_closing,

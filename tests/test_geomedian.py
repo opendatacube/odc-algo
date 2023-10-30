@@ -21,9 +21,8 @@ def test_geomedian_with_mads(xr_regression, datadir):
     ds = xarray.open_dataset(datadir / "landsat8_2020_ard.nc", chunks="auto")
 
     result = geomedian_with_mads(ds, **cfg)
+    result = result.compute()
     xr_regression(result)
-
-
 
 
 @pytest.fixture

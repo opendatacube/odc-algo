@@ -39,8 +39,15 @@ def _gm_mads_compute_f32(
         scale=scale,
         offset=offset
     )
+    # Compute the count in Python/NumPy
+    nbads = np.isnan(yxbt).sum(axis=2, dtype="bool").sum(axis=2, dtype="uint16")
+    count = yxbt.dtype.type(yxbt.shape[-1]) - nbads
+    # Add an empty axis so we can concatenate
+    count = count[..., np.newaxis]
 
-    return np.concatenate([gm, mads_array], axis=2)
+    # Jam all the arrays together. Which is weird, because we then proceed to pull them 
+    # back apart again.
+    return np.concatenate([gm, mads_array, count], axis=2)
 
 
 def geomedian_with_mads(
@@ -140,11 +147,21 @@ def geomedian_with_mads(
         num_threads=num_threads,
     )
     _gm = da.map_blocks(
-        op, yxbt.data, dtype="float32", drop_axis=3, chunks=chunks, name="geomedian"
+        op, yxbt.data, dtype=yxbt.dtype, drop_axis=3, chunks=chunks, name="geomedian"
     )
 
     if out_chunks is not None:
         _gm = _gm.rechunk(out_chunks)
+
+    gm_data = _gm[:, :, :nb]
+#    if not is_float:
+#        gm_data = da.map_blocks(
+#            lambda x: from_float_np(
+#                x, yxbt.dtype, nodata, scale=1 / scale, offset=-offset / scale
+#            ),
+#            gm_data,
+#            dtype=yxbt.dtype,
+#        )
 
     dims = yxbt.dims[:3]
     coords = {k: yxbt.coords[k] for k in dims}

@@ -39,16 +39,16 @@ def dataset_block_processor(
         data=gm_data, dims=dims, coords=coords, attrs=array.attrs
     ).to_dataset("band")
 
-    smad = mads[:, :, 0]
-    emad = mads[:, :, 1]
+    emad = mads[:, :, 0]
+    smad = mads[:, :, 1]
     bcmad = mads[:, :, 2]
 
     # TODO: Work out if the following is required
     # if not is_float:
     #     emad = emad * (1 / scale)
 
-    result["smad"] = xr.DataArray(data=smad, dims=dims[:2], coords=result.coords)
     result["emad"] = xr.DataArray(data=emad, dims=dims[:2], coords=result.coords)
+    result["smad"] = xr.DataArray(data=smad, dims=dims[:2], coords=result.coords)
     result["bcmad"] = xr.DataArray(data=bcmad, dims=dims[:2], coords=result.coords)
 
     # Compute the count in Python/NumPy
@@ -79,8 +79,8 @@ def _gm_mads_compute_f32(
 
       y, x, band
 
-    When extra stats are compute they ar returned in the following order:
-    [*bands, smad, emad, bcmad, count]
+    When extra stats are compute they are returned in the following order:
+    [*bands, emad, smad, bcmad, count]
 
     note that when supplying non-float input, it is scaled according to scale/offset/nodata parameters,
     output is however returned in that scaled range.

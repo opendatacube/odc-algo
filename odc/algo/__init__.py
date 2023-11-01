@@ -12,9 +12,7 @@ from ._dask import (
     wait_for_future,
 )
 from ._dask_stream import dask_compute_stream, seq_to_bags
-from ._geomedian import (
-    geomedian_with_mads,
-)
+from ._geomedian import geomedian_with_mads
 from ._masking import (
     binary_closing,
     binary_dilation,
@@ -76,10 +74,6 @@ __all__ = (
     "binary_erosion",
     "gap_fill",
     "choose_first_valid",
-    "xr_geomedian",
-    "int_geomedian",
-    "int_geomedian_np",
-    "reshape_for_geomedian",
     "geomedian_with_mads",
     "reshape_yxbt",
     "wait_for_future",

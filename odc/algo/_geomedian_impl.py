@@ -15,6 +15,13 @@ from collections.abc import Iterable
 
 
 def geomedian(in_array, nodata=None, num_threads=1, eps=1e-6, maxiters=1000, scale=1.0, offset=0.0):
+    """Geometric Median of a 4-D numpy array
+
+    Array dimensions should be (y, x, band, time)
+
+
+    :return: 3-d numpy array. Dimensions are (y, x, band)
+    """
 
     if len(in_array.shape) != 4:
         raise ValueError(

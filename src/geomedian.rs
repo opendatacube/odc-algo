@@ -1,3 +1,4 @@
+//! Array based Geometric Median implementations supporting Missing Values
 use ndarray::parallel::prelude::*;
 use ndarray::{s, Array, ArrayBase, ArrayView, ArrayViewMut, Axis, Ix1, Ix2, Ix3, Ix4, Zip};
 use num_traits::identities::Zero;
@@ -5,6 +6,7 @@ use num_traits::identities::Zero;
 use crate::mad;
 use rayon;
 
+/// Geometric Median on a 4-d array of floats
 pub fn geomedian<'a>(
     in_array: ArrayView<'a, f32, Ix4>,
     maxiters: usize,
@@ -122,6 +124,7 @@ fn get_valid_data<'a>(
     data.slice_mut(s![0..idx, ..])
 }
 
+/// Geometric Median on a 4-d array of Ints
 pub fn geomedian_int<'a, T: NumericTools + std::cmp::PartialEq + Clone + Copy + Zero + Sync + Send>(
     in_array: ArrayView<'a, T, Ix4>,
     maxiters: usize,

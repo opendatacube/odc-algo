@@ -1,4 +1,5 @@
-""" Helper methods for Geometric Median computation.
+"""
+Helper methods for Geometric Median computation.
 """
 import dask
 import dask.array as da
@@ -6,16 +7,72 @@ import functools
 import numpy as np
 import xarray as xr
 from typing import Optional, Tuple, Union
+from ._geomedian_impl import geomedian
 
-from ._dask import reshape_yxbt
-from ._masking import from_float_np
-from ._memsink import yxbt_sink
 
-# pylint: disable=import-outside-toplevel
+
+def dataset_block_processor(
+        input: xr.Dataset,
+        nodata=None,
+        scale=1,
+        offset=0,
+        eps=1e-6,
+        maxiters=1000,
+        num_threads=1,
+    ):
+
+    array = input.to_array(dim="band").transpose("y", "x", "band", "time")
+    nodata = array.attrs.get("nodata", None)
+
+    gm_data, mads = geomedian(array.data,
+        nodata=nodata,
+        num_threads=num_threads,
+        eps=eps,
+        maxiters=maxiters,
+        scale=scale,
+        offset=offset,
+      )
+
+    dims = ("y", "x", "band")
+    coords = {k: array.coords[k] for k in dims}
+    result = xr.DataArray(
+        data=gm_data, dims=dims, coords=coords, attrs=array.attrs
+    ).to_dataset("band")
+
+    smad = mads[:, :, 0]
+    emad = mads[:, :, 1]
+    bcmad = mads[:, :, 2]
+
+    # TODO: Work out if the following is required
+    # if not is_float:
+    #     emad = emad * (1 / scale)
+
+    result["smad"] = xr.DataArray(data=smad, dims=dims[:2], coords=result.coords)
+    result["emad"] = xr.DataArray(data=emad, dims=dims[:2], coords=result.coords)
+    result["bcmad"] = xr.DataArray(data=bcmad, dims=dims[:2], coords=result.coords)
+
+    # Compute the count in Python/NumPy
+    nbads = np.isnan(array.data).sum(axis=2, dtype="bool").sum(axis=2, dtype="uint16")
+    count = array.dtype.type(array.shape[-1]) - nbads
+    # Add an empty axis so we can concatenate
+    #count = count[..., np.newaxis]
+    result["count"] = xr.DataArray(data=count, dims=dims[:2], coords=result.coords)
+
+    # TODO: Work out if the following is required
+#    for dv in result.data_vars.values():
+#        dv.attrs.update(input.attrs)
+    
+    return result
 
 
 def _gm_mads_compute_f32(
-    yxbt, nodata=None, scale=1, offset=0, eps=None, maxiters=1000, num_threads=1,
+    yxbt,
+    nodata=None,
+    scale=1,
+    offset=0,
+    eps=None,
+    maxiters=1000,
+    num_threads=1,
 ):
     """
     output axis order is:
@@ -28,7 +85,6 @@ def _gm_mads_compute_f32(
     note that when supplying non-float input, it is scaled according to scale/offset/nodata parameters,
     output is however returned in that scaled range.
     """
-    from ._geomedian_impl import geomedian
 
     gm, mads_array = geomedian(
         yxbt,
@@ -37,7 +93,7 @@ def _gm_mads_compute_f32(
         eps=eps,
         maxiters=maxiters,
         scale=scale,
-        offset=offset
+        offset=offset,
     )
     # Compute the count in Python/NumPy
     nbads = np.isnan(yxbt).sum(axis=2, dtype="bool").sum(axis=2, dtype="uint16")
@@ -45,7 +101,7 @@ def _gm_mads_compute_f32(
     # Add an empty axis so we can concatenate
     count = count[..., np.newaxis]
 
-    # Jam all the arrays together. Which is weird, because we then proceed to pull them 
+    # Jam all the arrays together. Which is weird, because we then proceed to pull them
     # back apart again.
     return np.concatenate([gm, mads_array, count], axis=2)
 
@@ -115,80 +171,63 @@ def geomedian_with_mads(
     if not dask.is_dask_collection(src):
         raise ValueError("This method only works on Dask inputs")
 
-    if isinstance(src, xr.DataArray):
-        yxbt = src
-    else:
-        ny, nx = work_chunks
-        if reshape_strategy == "mem":
-            yxbt = yxbt_sink(src, (ny, nx, -1, -1))
-        elif reshape_strategy == "yxbt":
-            yxbt = reshape_yxbt(src, yx_chunks=(ny, nx))
-        else:
-            raise ValueError(
-                f"Reshape strategy '{reshape_strategy}' not understood use one of: mem or yxbt"
-            )
+#    if isinstance(src, xr.DataArray):
+#        yxbt = src
+#    else:
+#        ny, nx = work_chunks
+#        if reshape_strategy == "mem":
+#            yxbt = yxbt_sink(src, (ny, nx, -1, -1))
+#        elif reshape_strategy == "yxbt":
+#            yxbt = reshape_yxbt(src, yx_chunks=(ny, nx))
+#        else:
+#            raise ValueError(
+#                f"Reshape strategy '{reshape_strategy}' not understood use one of: mem or yxbt"
+#            )
 
-    ny, nx, nb, nt = yxbt.shape
-    nodata = yxbt.attrs.get("nodata", None)
-    assert yxbt.chunks is not None
-    if yxbt.data.numblocks[2:4] != (1, 1):
-        raise ValueError("There should be one dask block along time and band dimension")
+    ny, nx = work_chunks
+    chunked = src.chunk({"y": ny, "x": nx, "time": -1})
 
-    n_extras = (3 if compute_mads else 0) + (1 if compute_count else 0)
-    chunks = (*yxbt.chunks[:2], (nb + n_extras,))
+    # TODO: I don't think this is needed, since we *just* specified it
+#    ny, nx, nb, nt = yxbt.shape
+#    nodata = chunked.attrs.get("nodata", None)
+#    assert yxbt.chunks is not None
+#    if yxbt.data.numblocks[2:4] != (1, 1):
+#        raise ValueError("There should be one dask block along time and band dimension")
 
-    op = functools.partial(
-        _gm_mads_compute_f32,
-        nodata=nodata,
-        scale=scale,
-        offset=offset,
-        eps=eps,
-        maxiters=maxiters,
-        num_threads=num_threads,
+#    chunks = (*yxbt.chunks[:2], (nb + n_extras,))
+
+    # Check the dtype of the first data variable
+    is_float = next(iter(src.dtypes.values())) == "f"
+
+    if eps is None:
+        eps = 1e-4 if is_float else 0.1 * scale
+
+#    op = functools.partial(
+#        _gm_mads_compute_f32,
+#        nodata=nodata,
+#        scale=scale,
+#        offset=offset,
+#        eps=eps,
+#        maxiters=maxiters,
+#        num_threads=num_threads,
+#    )
+
+    _gm_with_mads = chunked.map_blocks(
+            dataset_block_processor,
+            kwargs=dict(
+                   scale=scale,
+                   offset=offset,
+                   eps=eps,
+                   maxiters=maxiters,
+                   num_threads=num_threads,
+                )
     )
-    _gm = da.map_blocks(
-        op, yxbt.data, dtype=yxbt.dtype, drop_axis=3, chunks=chunks, name="geomedian"
-    )
 
-    if out_chunks is not None:
-        _gm = _gm.rechunk(out_chunks)
+#    _gm = da.map_blocks(
+#        op, yxbt.data, dtype=yxbt.dtype, drop_axis=3, chunks=chunks, name="geomedian"
+#    )
+# TODO: Check, but this seems bogus now, we haven't gone via a single array.
+    # if out_chunks is not None:
+    #     _gm_with_mads = _gm_with_mads.chunk(out_chunks)
 
-    gm_data = _gm[:, :, :nb]
-#    if not is_float:
-#        gm_data = da.map_blocks(
-#            lambda x: from_float_np(
-#                x, yxbt.dtype, nodata, scale=1 / scale, offset=-offset / scale
-#            ),
-#            gm_data,
-#            dtype=yxbt.dtype,
-#        )
-
-    dims = yxbt.dims[:3]
-    coords = {k: yxbt.coords[k] for k in dims}
-    result = xr.DataArray(
-        data=_gm[:, :, :nb].astype(yxbt.dtype),
-        dims=dims,
-        coords=coords,
-        attrs=yxbt.attrs,
-    ).to_dataset("band")
-
-    for dv in result.data_vars.values():
-        dv.attrs.update(yxbt.attrs)
-
-    next_stat = nb
-    if compute_mads:
-        smad = _gm[:, :, next_stat + 0]
-        emad = _gm[:, :, next_stat + 1]
-        bcmad = _gm[:, :, next_stat + 2]
-        next_stat += 3
-
-        result["smad"] = xr.DataArray(data=smad, dims=dims[:2], coords=result.coords)
-        result["emad"] = xr.DataArray(data=emad, dims=dims[:2], coords=result.coords)
-        result["bcmad"] = xr.DataArray(data=bcmad, dims=dims[:2], coords=result.coords)
-
-    if compute_count:
-        count = _gm[:, :, next_stat].astype("uint16")
-        next_stat += 1
-        result["count"] = xr.DataArray(data=count, dims=dims[:2], coords=result.coords)
-
-    return result
+    return _gm_with_mads

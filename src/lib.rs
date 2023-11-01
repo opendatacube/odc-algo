@@ -1,3 +1,4 @@
+//! Fast Array Summaries for Use from Python for Raster Earth Observation Data
 use numpy::{PyArray1, PyArray2, PyArray3, PyArray4, ToPyArray};
 use pyo3::prelude::{pymodule, PyModule, PyResult, Python};
 use pyo3::prelude::*;

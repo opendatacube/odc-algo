@@ -2,13 +2,10 @@
 Helper methods for Geometric Median computation.
 """
 import dask
-import dask.array as da
-import functools
 import numpy as np
 import xarray as xr
 from typing import Optional, Tuple, Union
 from ._geomedian_impl import geomedian
-
 
 
 def dataset_block_processor(
@@ -63,47 +60,6 @@ def dataset_block_processor(
 #        dv.attrs.update(input.attrs)
     
     return result
-
-
-def _gm_mads_compute_f32(
-    yxbt,
-    nodata=None,
-    scale=1,
-    offset=0,
-    eps=None,
-    maxiters=1000,
-    num_threads=1,
-):
-    """
-    output axis order is:
-
-      y, x, band
-
-    When extra stats are compute they are returned in the following order:
-    [*bands, emad, smad, bcmad, count]
-
-    note that when supplying non-float input, it is scaled according to scale/offset/nodata parameters,
-    output is however returned in that scaled range.
-    """
-
-    gm, mads_array = geomedian(
-        yxbt,
-        nodata=nodata,
-        num_threads=num_threads,
-        eps=eps,
-        maxiters=maxiters,
-        scale=scale,
-        offset=offset,
-    )
-    # Compute the count in Python/NumPy
-    nbads = np.isnan(yxbt).sum(axis=2, dtype="bool").sum(axis=2, dtype="uint16")
-    count = yxbt.dtype.type(yxbt.shape[-1]) - nbads
-    # Add an empty axis so we can concatenate
-    count = count[..., np.newaxis]
-
-    # Jam all the arrays together. Which is weird, because we then proceed to pull them
-    # back apart again.
-    return np.concatenate([gm, mads_array, count], axis=2)
 
 
 def geomedian_with_mads(
@@ -163,38 +119,21 @@ def geomedian_with_mads(
     :param work_chunks: Default is ``(100, 100)``, only applicable when input
                         is Dataset.
     """
+    # Validate Arguments
     if not compute_mads:
         raise ValueError("compute_mads must be set to True")
     if not compute_count:
         raise ValueError("compute_count must be set to True")
-
     if not dask.is_dask_collection(src):
         raise ValueError("This method only works on Dask inputs")
 
-#    if isinstance(src, xr.DataArray):
-#        yxbt = src
-#    else:
-#        ny, nx = work_chunks
-#        if reshape_strategy == "mem":
-#            yxbt = yxbt_sink(src, (ny, nx, -1, -1))
-#        elif reshape_strategy == "yxbt":
-#            yxbt = reshape_yxbt(src, yx_chunks=(ny, nx))
-#        else:
-#            raise ValueError(
-#                f"Reshape strategy '{reshape_strategy}' not understood use one of: mem or yxbt"
-#            )
-
     ny, nx = work_chunks
+    # TODO: This is kind of horrible, I don't know why odc-algo is replacing the
+    # time dimension with the spec dimension when going through load_with_native_transform
+    # and in particular, group_by_nothing()
+    # So work around poorly for now.
+
     chunked = src.chunk({"y": ny, "x": nx, "time": -1})
-
-    # TODO: I don't think this is needed, since we *just* specified it
-#    ny, nx, nb, nt = yxbt.shape
-#    nodata = chunked.attrs.get("nodata", None)
-#    assert yxbt.chunks is not None
-#    if yxbt.data.numblocks[2:4] != (1, 1):
-#        raise ValueError("There should be one dask block along time and band dimension")
-
-#    chunks = (*yxbt.chunks[:2], (nb + n_extras,))
 
     # Check the dtype of the first data variable
     is_float = next(iter(src.dtypes.values())) == "f"
@@ -202,32 +141,17 @@ def geomedian_with_mads(
     if eps is None:
         eps = 1e-4 if is_float else 0.1 * scale
 
-#    op = functools.partial(
-#        _gm_mads_compute_f32,
-#        nodata=nodata,
-#        scale=scale,
-#        offset=offset,
-#        eps=eps,
-#        maxiters=maxiters,
-#        num_threads=num_threads,
-#    )
 
     _gm_with_mads = chunked.map_blocks(
-            dataset_block_processor,
-            kwargs=dict(
-                   scale=scale,
-                   offset=offset,
-                   eps=eps,
-                   maxiters=maxiters,
-                   num_threads=num_threads,
-                )
+        dataset_block_processor,
+        kwargs=dict(
+           scale=scale,
+           offset=offset,
+           eps=eps,
+           maxiters=maxiters,
+           num_threads=num_threads,
+        )
     )
 
-#    _gm = da.map_blocks(
-#        op, yxbt.data, dtype=yxbt.dtype, drop_axis=3, chunks=chunks, name="geomedian"
-#    )
-# TODO: Check, but this seems bogus now, we haven't gone via a single array.
-    # if out_chunks is not None:
-    #     _gm_with_mads = _gm_with_mads.chunk(out_chunks)
 
     return _gm_with_mads

@@ -18,7 +18,11 @@ def dataset_block_processor(
         num_threads=1,
     ):
 
-    array = input.to_array(dim="band").transpose("y", "x", "band", "time")
+    # Le sigh, more issues with "spec" vs "time"
+    if "time" in input.dims:
+        array = input.to_array(dim="band").transpose("y", "x", "band", "time")
+    else:
+        array = input.to_array(dim="band").transpose("y", "x", "band", "spec")
     nodata = array.attrs.get("nodata", None)
 
     gm_data, mads = geomedian(array.data,
@@ -132,8 +136,10 @@ def geomedian_with_mads(
     # time dimension with the spec dimension when going through load_with_native_transform
     # and in particular, group_by_nothing()
     # So work around poorly for now.
-
-    chunked = src.chunk({"y": ny, "x": nx, "time": -1})
+    if "spec" in src.dims:
+        chunked = src.chunk({"y": ny, "x": nx, "spec": -1})
+    else:
+        chunked = src.chunk({"y": ny, "x": nx, "time": -1})
 
     # Check the dtype of the first data variable
     is_float = next(iter(src.dtypes.values())) == "f"

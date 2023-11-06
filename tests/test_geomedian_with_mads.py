@@ -44,3 +44,4 @@ def xr_regression(request, datadir, original_datadir):
                                     for vname in list(test_data)})
 
     return check
+

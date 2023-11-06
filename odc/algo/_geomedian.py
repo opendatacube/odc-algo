@@ -8,7 +8,7 @@ from typing import Optional, Tuple, Union
 from ._geomedian_impl import geomedian
 
 
-def dataset_block_processor(
+def geomedian_block_processor(
         input: xr.Dataset,
         nodata=None,
         scale=1,
@@ -23,7 +23,16 @@ def dataset_block_processor(
         array = input.to_array(dim="band").transpose("y", "x", "band", "time")
     else:
         array = input.to_array(dim="band").transpose("y", "x", "band", "spec")
-    nodata = array.attrs.get("nodata", None)
+
+    if nodata is None:
+        # Grab the nodata value from our input array
+        nodata_vals = set(dv.attrs['nodata'] for dv in input.data_vars.values())
+        if len(nodata_vals) > 1:
+            raise ValueError("I can't handle more than 1 nodata value!", nodata_vals)
+        nodata = nodata_vals.pop()
+
+#    # Make sure we have what we need in RAM
+#    array = array.compute()
 
     gm_data, mads = geomedian(array.data,
         nodata=nodata,
@@ -147,9 +156,8 @@ def geomedian_with_mads(
     if eps is None:
         eps = 1e-4 if is_float else 0.1 * scale
 
-
     _gm_with_mads = chunked.map_blocks(
-        dataset_block_processor,
+        geomedian_block_processor,
         kwargs=dict(
            scale=scale,
            offset=offset,
@@ -158,6 +166,5 @@ def geomedian_with_mads(
            num_threads=num_threads,
         )
     )
-
 
     return _gm_with_mads

@@ -59,6 +59,14 @@ pub fn bcmad(data: ArrayView<f32, Ix2>, gm: ArrayView<f32, Ix1>) -> f32 {
 }
 
 fn median(mut data: Vec<f32>) -> f32 {
+    // This fails if there are floats in data
+    // It needs some more thought, about whether that could ever happen
+    // and how it should be handled.
+    //
+    // Maybe data.sort_unstable_by(f32::total_cmp);
+    //
+    // See also [Tracking Issue for sort_floats · Issue #93396 · rust-lang/rust](https://github.com/rust-lang/rust/issues/93396)
+
     // Filter out NaN values before sorting
     data.retain(|&x| !x.is_nan());
 
@@ -66,7 +74,6 @@ fn median(mut data: Vec<f32>) -> f32 {
     if data.len() == 0 {
         return std::f32::NAN;
     }
-
     data.sort_by(|a, b| a.partial_cmp(b).unwrap());
     let idx = data.len() / 2;
 
@@ -74,5 +81,23 @@ fn median(mut data: Vec<f32>) -> f32 {
         return 0.5 * (data[idx] + data[idx - 1]);
     } else {
         return data[idx];
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn median_okay_with_some_nans() {
+        let data: Vec<f32> = vec![f32::NAN, 1.0, 2.0, 3.0, f32::NAN];
+        let med = median(data);
+        assert_eq!(2.0, med);
+    }
+    #[test]
+    fn median_okay_with_all_nans() {
+        let data: Vec<f32> = vec![f32::NAN, f32::NAN];
+        let med = median(data);
+        assert!(med.is_nan());
     }
 }

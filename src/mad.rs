@@ -59,6 +59,14 @@ pub fn bcmad(data: ArrayView<f32, Ix2>, gm: ArrayView<f32, Ix1>) -> f32 {
 }
 
 fn median(mut data: Vec<f32>) -> f32 {
+    // Filter out NaN values before sorting
+    data.retain(|&x| !x.is_nan());
+
+    // return NaN if no valid values
+    if data.len() == 0 {
+        return std::f32::NAN;
+    }
+
     data.sort_by(|a, b| a.partial_cmp(b).unwrap());
     let idx = data.len() / 2;
 

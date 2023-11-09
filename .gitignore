@@ -84,3 +84,5 @@ docs/notebooks/
 docker/wheels/
 
 *.pyc
+
+build

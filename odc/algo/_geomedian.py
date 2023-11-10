@@ -1,10 +1,12 @@
 """
 Helper methods for Geometric Median computation.
 """
+from typing import Optional, Tuple, Union
+
 import dask
 import numpy as np
 import xarray as xr
-from typing import Optional, Tuple, Union
+
 from ._geomedian_impl import geomedian
 
 
@@ -25,23 +27,28 @@ def geomedian_block_processor(
         array = input.to_array(dim="band").transpose("y", "x", "band", "spec")
 
     if nodata is None:
+        nodata = input.attrs.get("nodata", None)
+
+    if nodata is None:
         # Grab the nodata value from our input array
-        nodata_vals = set(dv.attrs['nodata'] for dv in input.data_vars.values())
+        nodata_vals = set(dv.attrs.get('nodata', None) for dv in input.data_vars.values())
         if len(nodata_vals) > 1:
             raise ValueError("I can't handle more than 1 nodata value!", nodata_vals)
-        nodata = nodata_vals.pop()
+        elif len(nodata_vals) == 1:
+            nodata = nodata_vals.pop()
+        else:
+            # Not sure if this is a sensible default.
+            nodata = float("nan")
 
-#    # Make sure we have what we need in RAM
-#    array = array.compute()
-
-    gm_data, mads = geomedian(array.data,
+    gm_data, mads = geomedian(
+        array.data,
         nodata=nodata,
         num_threads=num_threads,
         eps=eps,
         maxiters=maxiters,
         scale=scale,
         offset=offset,
-      )
+    )
 
     dims = ("y", "x", "band")
     coords = {k: array.coords[k] for k in dims}
@@ -64,14 +71,12 @@ def geomedian_block_processor(
     # Compute the count in Python/NumPy
     nbads = np.isnan(array.data).sum(axis=2, dtype="bool").sum(axis=2, dtype="uint16")
     count = array.dtype.type(array.shape[-1]) - nbads
-    # Add an empty axis so we can concatenate
-    #count = count[..., np.newaxis]
-    result["count"] = xr.DataArray(data=count, dims=dims[:2], coords=result.coords)
+    result["count"] = xr.DataArray(data=count, dims=dims[:2], coords=result.coords).astype("uint16")
 
     # TODO: Work out if the following is required
 #    for dv in result.data_vars.values():
 #        dv.attrs.update(input.attrs)
-    
+
     return result
 
 
@@ -159,11 +164,11 @@ def geomedian_with_mads(
     _gm_with_mads = chunked.map_blocks(
         geomedian_block_processor,
         kwargs=dict(
-           scale=scale,
-           offset=offset,
-           eps=eps,
-           maxiters=maxiters,
-           num_threads=num_threads,
+            scale=scale,
+            offset=offset,
+            eps=eps,
+            maxiters=maxiters,
+            num_threads=num_threads,
         )
     )
 

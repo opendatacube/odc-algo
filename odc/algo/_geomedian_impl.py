@@ -1,10 +1,10 @@
 from .backend import (
-    _geomedian, 
-    _geomedian_int16, 
+    _geomedian,
+    _geomedian_int16,
     _geomedian_uint16,
-    _percentile_uint16, 
+    _percentile_uint16,
     _percentile_int16,
-    _percentile_uint8, 
+    _percentile_uint8,
     _percentile_int8,
     _percentile_f32,
     _percentile_f64,
@@ -14,7 +14,9 @@ import numpy as np
 from collections.abc import Iterable
 
 
-def geomedian(in_array, nodata=None, num_threads=1, eps=1e-6, maxiters=1000, scale=1.0, offset=0.0):
+def geomedian(
+    in_array, nodata=None, num_threads=1, eps=1e-6, maxiters=1000, scale=1.0, offset=0.0
+):
     """Geometric Median of a 4-D numpy array
 
     Array dimensions should be (y, x, band, time)
@@ -35,20 +37,26 @@ def geomedian(in_array, nodata=None, num_threads=1, eps=1e-6, maxiters=1000, sca
     elif in_array.dtype == np.int16:
         if nodata is None:
             nodata = -1
-        return _geomedian_int16(in_array, maxiters, eps, num_threads, nodata, scale, offset)
+        return _geomedian_int16(
+            in_array, maxiters, eps, num_threads, nodata, scale, offset
+        )
     elif in_array.dtype == np.uint16:
         if nodata is None:
             nodata = 0
-        return _geomedian_uint16(in_array, maxiters, eps, num_threads, nodata, scale, offset)
+        return _geomedian_uint16(
+            in_array, maxiters, eps, num_threads, nodata, scale, offset
+        )
     else:
-        raise TypeError(f"in_array: expected dtype to be one of {np.float32}, {np.int16}, {np.uint16}, found {in_array.dtype}.")
+        raise TypeError(
+            f"in_array: expected dtype to be one of {np.float32}, {np.int16}, {np.uint16}, found {in_array.dtype}."
+        )
 
 
 def percentile(in_array, percentiles, nodata=None):
     """
-    Calculates the percentiles of the input data along the first axis. 
+    Calculates the percentiles of the input data along the first axis.
 
-    It accepts an array with shape (t, *other dims) and returns an array with shape 
+    It accepts an array with shape (t, *other dims) and returns an array with shape
     (len(percentiles), *other dims) where the first index of the output array correspond to the percentiles.
     e.g. `out[i, :]` corresponds to the ith percentile
 
@@ -82,9 +90,10 @@ def percentile(in_array, percentiles, nodata=None):
         out_array = _percentile_f32(in_array, percentiles)
     elif in_array.dtype == np.float64:
         out_array = _percentile_f64(in_array, percentiles)
-    else: 
+    else:
         raise NotImplementedError
 
     return out_array.reshape((len(percentiles),) + shape[1:])
+
 
 __all__ = ("geomedian", "percentile")

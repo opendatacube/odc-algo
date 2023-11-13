@@ -11,15 +11,14 @@ from ._geomedian_impl import geomedian
 
 
 def geomedian_block_processor(
-        input: xr.Dataset,
-        nodata=None,
-        scale=1,
-        offset=0,
-        eps=1e-6,
-        maxiters=1000,
-        num_threads=1,
-    ):
-
+    input: xr.Dataset,
+    nodata=None,
+    scale=1,
+    offset=0,
+    eps=1e-6,
+    maxiters=1000,
+    num_threads=1,
+):
     # Le sigh, more issues with "spec" vs "time"
     if "time" in input.dims:
         array = input.to_array(dim="band").transpose("y", "x", "band", "time")
@@ -31,7 +30,9 @@ def geomedian_block_processor(
 
     if nodata is None:
         # Grab the nodata value from our input array
-        nodata_vals = set(dv.attrs.get('nodata', None) for dv in input.data_vars.values())
+        nodata_vals = set(
+            dv.attrs.get("nodata", None) for dv in input.data_vars.values()
+        )
         if len(nodata_vals) > 1:
             raise ValueError("I can't handle more than 1 nodata value!", nodata_vals)
         elif len(nodata_vals) == 1:
@@ -71,11 +72,13 @@ def geomedian_block_processor(
     # Compute the count in Python/NumPy
     nbads = np.isnan(array.data).sum(axis=2, dtype="bool").sum(axis=2, dtype="uint16")
     count = array.dtype.type(array.shape[-1]) - nbads
-    result["count"] = xr.DataArray(data=count, dims=dims[:2], coords=result.coords).astype("uint16")
+    result["count"] = xr.DataArray(
+        data=count, dims=dims[:2], coords=result.coords
+    ).astype("uint16")
 
     # TODO: Work out if the following is required
-#    for dv in result.data_vars.values():
-#        dv.attrs.update(input.attrs)
+    #    for dv in result.data_vars.values():
+    #        dv.attrs.update(input.attrs)
 
     return result
 
@@ -169,7 +172,7 @@ def geomedian_with_mads(
             eps=eps,
             maxiters=maxiters,
             num_threads=num_threads,
-        )
+        ),
     )
 
     return _gm_with_mads

@@ -69,16 +69,21 @@ def geomedian_block_processor(
     result["smad"] = xr.DataArray(data=smad, dims=dims[:2], coords=result.coords)
     result["bcmad"] = xr.DataArray(data=bcmad, dims=dims[:2], coords=result.coords)
 
-    # Compute the count in Python/NumPy
-    nbads = np.isnan(array.data).sum(axis=2, dtype="bool").sum(axis=2, dtype="uint16")
-    count = array.dtype.type(array.shape[-1]) - nbads
+    # Compute the count of valid observations
+    count_good = np.all(array.data != nodata, axis=2).sum(axis=2)
     result["count"] = xr.DataArray(
-        data=count, dims=dims[:2], coords=result.coords
+        data=count_good, dims=dims[:2], coords=result.coords
     ).astype("uint16")
 
-    # TODO: Work out if the following is required
-    #    for dv in result.data_vars.values():
-    #        dv.attrs.update(input.attrs)
+    # This is required to ensure that nodata is set per-band
+    for band_name in result.data_vars:
+        band = result[band_name]
+        if band_name in ["emad", "smad", "bcmad"]:
+            band.attrs = dict(nodata=float("nan"))
+        elif band_name == "count":
+            band.attrs = dict(nodata=9999)
+        else:
+            band.attrs = dict(nodata=nodata)
 
     return result
 

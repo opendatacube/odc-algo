@@ -12,6 +12,7 @@ import xarray as xr
 from dask.highlevelgraph import HighLevelGraph
 from functools import partial
 from typing import Any, Dict, Iterable, Optional, Tuple, Union
+import uuid
 
 from ._dask import _get_chunks_asarray, randomize
 
@@ -150,12 +151,12 @@ def erase_bad(x, where, inplace=False, nodata=None):
 def from_float_np(x, dtype, nodata, scale=1, offset=0, where=None, out=None):
     scale = np.float32(scale)
     offset = np.float32(offset)
-
-    if out is None:
-        out = np.empty_like(x, dtype=dtype)
-    else:
-        assert out.shape == x.shape
-
+    
+    # if out is None:
+    #     out = np.empty_like(x, dtype=dtype)
+    # else:
+    #     assert out.shape == x.shape
+        
     params = dict(x=x, nodata=nodata, scale=scale, offset=offset)
 
     # `x == x` is equivalent to `~np.isnan(x)`
@@ -166,10 +167,9 @@ def from_float_np(x, dtype, nodata, scale=1, offset=0, where=None, out=None):
         expr = "where((x == x)&m, x*scale + offset, nodata)"
     else:
         expr = "where(x == x, x*scale + offset, nodata)"
-
-    ne.evaluate(expr, local_dict=params, out=out, casting="unsafe")
-
-    return out
+        
+    return ne.evaluate(expr, local_dict=params, out=out, casting="unsafe")
+    # return out
 
 
 def to_float_np(x, nodata=None, scale=1, offset=0, dtype="float32", out=None):
@@ -180,10 +180,11 @@ def to_float_np(x, nodata=None, scale=1, offset=0, dtype="float32", out=None):
     offset = float_type(offset)
 
     params = dict(_nan=_nan, scale=scale, offset=offset, x=x, nodata=nodata)
-    if out is None:
-        out = np.empty_like(x, dtype=dtype)
-    else:
-        assert out.shape == x.shape
+    # if out is None:
+    #     out = np.empty_like(x, dtype=dtype)
+    # else:
+    #     assert out.shape == x.shape
+    # print("let numpexpr allocate memories")
 
     if nodata is None:
         return ne.evaluate(
@@ -200,6 +201,7 @@ def to_float_np(x, nodata=None, scale=1, offset=0, dtype="float32", out=None):
             casting="unsafe",
             local_dict=params,
         )
+    # return out
 
 
 def to_f32_np(x, nodata=None, scale=1, offset=0, out=None):

@@ -273,8 +273,16 @@ def _da_from_mem(
     for idx in np.ndindex(shape_in_chunks):
         dsk[(name, *idx)] = (_chunk_extractor, token.key, _roi(idx))
         dsk[name].append((name, *idx))
-
+    import json 
+    with open("/home/jovyan/dask_keys.txt", "w") as f:
+        f.write(json.dumps(list(dsk.keys())))
+        f.write("\n")
+        f.write(json.dumps(list(set(dsk.keys()))))
+    print(f"dask chunk keys {len(list(dsk.keys()))}")
+    print(f"dask chunk keys {len(set(dsk.keys()))}")
     dsk = HighLevelGraph.from_collections(name, dsk, dependencies=[token])
+    with open("/home/jovyan/chunk_map.html", "w") as f:
+        f.write(dsk._repr_html_())
 
     return da.Array(dsk, name, shape=shape, dtype=dtype, chunks=_chunks)
 
@@ -369,6 +377,8 @@ def da_yxbt_sink(
     dsk = dict(fut.dask)
     dsk[sink_name] = (lambda *x: x[0], token.key, *fut.dask[fut.key])
     dsk = HighLevelGraph.from_collections(sink_name, dsk, dependencies=sinks)
+    with open("/home/jovyan/yxbt_sink_map.html", "w") as f:
+        f.write(dsk._repr_html_())
     token_done = Delayed(sink_name, dsk)
 
     return _da_from_mem(token_done, shape=shape, dtype=dtype, chunks=chunks, name=name)

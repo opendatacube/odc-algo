@@ -262,7 +262,7 @@ def int_geomedian(ds, scale=1, offset=0, wk_rows=-1, as_array=False, **kw):
 
 
 def _gm_mads_compute_f32(
-    yxbt, compute_mads=True, compute_count=True, nodata=None, scale=1, offset=0, **kw
+    yxbt, compute_mads=True, compute_count=True, nodata=None, scale=1, offset=0, block_info=None, **kw
 ):
     """
     output axis order is:
@@ -275,32 +275,79 @@ def _gm_mads_compute_f32(
     note that when supplying non-float input, it is scaled according to scale/offset/nodata parameters,
     output is however returned in that scaled range.
     """
+    chunk_loc = None
+    if block_info is None:
+        with open("/home/jovyan/block_info.txt", "w") as f:
+            f.close()
+        with open("/home/jovyan/block_object.txt", "w") as f:
+            f.close()
+    elif block_info != []:
+        import json
+        with open("/home/jovyan/block_info.txt", "a") as f:
+            f.write(json.dumps(block_info))
+            f.write("\n")
+        chunk_loc = block_info[None]["chunk-location"]
+        
     import hdstats
-
-    if yxbt.dtype.kind != "f":
-        yxbt = to_float_np(yxbt, scale=scale, offset=offset, nodata=nodata)
-
-    gm = hdstats.nangeomedian_pcm(yxbt, nocheck=True, **kw)
-
+    
+    is_float = yxbt.dtype == "f"
+  
+    eps = kw.pop("eps")
+    if eps is None:
+        eps = 1e-4 if is_float else 0.1 * scale
+   
+    # convert non-float input to float32
+    if not is_float:
+        # tmp_input = np.zeros_like(yxbt, "float32")
+        tmp = None
+        tmp_input = to_float_np(yxbt, scale=scale, offset=offset, nodata=nodata, out=tmp)
+        if block_info != []:
+            with open("/home/jovyan/block_object.txt", "a") as f:
+                    f.write("_".join([str(c) for c in chunk_loc])+ ", ")
+                    # f.write(str(tmp is tmp_input))
+                    f.write("\n")
+    else:
+        tmp_input = yxbt
+    
+    gm = hdstats.nangeomedian_pcm(tmp_input, nocheck=True, eps=eps, **kw)
+    
     stats_bands = []
 
     if compute_mads:
         mads = [hdstats.smad_pcm, hdstats.emad_pcm, hdstats.bcmad_pcm]
 
         for i, op in enumerate(mads):
-            stats_bands.append(op(yxbt, gm, num_threads=kw.get("num_threads", 1)))
+            stats_bands.append(op(tmp_input, gm, num_threads=kw.get("num_threads", 1)))
+            if abs(scale-1) >= 1e-10 and op == hdstats.emad_pcm:
+                stats_bands[-1] *= (1 / scale)
 
     if compute_count:
-        nbads = np.isnan(yxbt).sum(axis=2, dtype="bool").sum(axis=2, dtype="uint16")
-        count = yxbt.dtype.type(yxbt.shape[-1]) - nbads
+        nbads = np.isnan(tmp_input).sum(axis=2, dtype="bool").sum(axis=2, dtype="uint16")
+        count = tmp_input.dtype.type(tmp_input.shape[-1]) - nbads
         stats_bands.append(count)
+        
+    # compute wrt scale and offset,
+    if not is_float:
+        # out = np.zeros_like(gm, "float32")
+        out = from_float_np(gm, gm.dtype, nodata, scale=1/scale, offset=-offset/scale)
+    
+    if chunk_loc is not None:
+        import pickle
+        fname = "/home/jovyan/gm_correct_blocks/block_value_" + "_".join([str(c) for c in chunk_loc])+".pkl"
+        with open(fname, "rb") as f:
+            correct_block = pickle.load(f)
+        if (np.abs(out-correct_block[-1]) >= 1e-4).all():
+            fname = "/home/jovyan/block_value_" + "_".join([str(c) for c in chunk_loc])+".pkl"
+            with open(fname, "bw") as f:
+                pickle.dump([yxbt, tmp_input,gm,out], f)
 
+    
     if len(stats_bands) == 0:
-        return gm
+        return out
 
     stats_bands = [a[..., np.newaxis] for a in stats_bands]
 
-    return np.concatenate([gm, *stats_bands], axis=2)
+    return np.concatenate([out, *stats_bands], axis=2)
 
 
 def geomedian_with_mads(
@@ -385,11 +432,7 @@ def geomedian_with_mads(
 
     n_extras = (3 if compute_mads else 0) + (1 if compute_count else 0)
     chunks = (*yxbt.chunks[:2], (nb + n_extras,))
-
-    is_float = yxbt.dtype.kind == "f"
-
-    if eps is None:
-        eps = 1e-4 if is_float else 0.1 * scale
+    print(f"geomedian chunks {chunks}")
 
     op = functools.partial(
         _gm_mads_compute_f32,
@@ -402,27 +445,17 @@ def geomedian_with_mads(
         maxiters=maxiters,
         num_threads=num_threads,
     )
-
     _gm = da.map_blocks(
-        op, yxbt.data, dtype="float32", drop_axis=3, chunks=chunks, name="geomedian"
-    )
+         op, yxbt.data, dtype="float32", drop_axis=3, chunks=chunks, name="geomedian"
+     )
+  
     if out_chunks is not None:
         _gm = _gm.rechunk(out_chunks)
-
-    gm_data = _gm[:, :, :nb]
-    if not is_float:
-        gm_data = da.map_blocks(
-            lambda x: from_float_np(
-                x, yxbt.dtype, nodata, scale=1 / scale, offset=-offset / scale
-            ),
-            gm_data,
-            dtype=yxbt.dtype,
-        )
 
     dims = yxbt.dims[:3]
     coords = {k: yxbt.coords[k] for k in dims}
     result = xr.DataArray(
-        data=gm_data, dims=dims, coords=coords, attrs=yxbt.attrs
+        data=_gm[:, :, :nb].astype(yxbt.dtype), dims=dims, coords=coords, attrs=yxbt.attrs
     ).to_dataset("band")
 
     for dv in result.data_vars.values():
@@ -434,9 +467,6 @@ def geomedian_with_mads(
         emad = _gm[:, :, next_stat + 1]
         bcmad = _gm[:, :, next_stat + 2]
         next_stat += 3
-
-        if not is_float:
-            emad = emad * (1 / scale)
 
         result["smad"] = xr.DataArray(data=smad, dims=dims[:2], coords=result.coords)
         result["emad"] = xr.DataArray(data=emad, dims=dims[:2], coords=result.coords)

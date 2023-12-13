@@ -278,7 +278,7 @@ def _gm_mads_compute_f32(
 
     import hdstats
 
-    is_float = yxbt.dtype == "f"
+    is_float = yxbt.dtype.kind == "f"
     need_scale = (abs(scale - 1) >= 1e-10) & (abs(offset) >= 1e-10)
 
     eps = kw.pop("eps")
@@ -288,6 +288,8 @@ def _gm_mads_compute_f32(
     # scale with scale and offset
     # it might double the memory when scale = 1 and offset = 0
     # but it's thread safe for numexpr
+    # warnings: Do NOT allocate memory for to_float_np in multithreading,
+    # as it will introduce race-condition
     if need_scale:
         tmp_input = to_float_np(yxbt, scale=scale, offset=offset, nodata=nodata)
     elif not is_float:
@@ -314,7 +316,9 @@ def _gm_mads_compute_f32(
         count = tmp_input.dtype.type(tmp_input.shape[-1]) - nbads
         stats_bands.append(count)
 
-    # compute wrt scale and offset,
+    # compute wrt scale and offset
+    # warnings: Do NOT allocate memory for from_float_np in multithreading
+    # as it will introduce race-condition
     if need_scale:
         out = from_float_np(
             gm, gm.dtype, nodata, scale=1 / scale, offset=-offset / scale

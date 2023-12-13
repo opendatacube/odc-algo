@@ -152,6 +152,8 @@ def from_float_np(x, dtype, nodata, scale=1, offset=0, where=None, out=None):
     scale = float_type(scale)
     offset = float_type(offset)
 
+    # warnings: Do NOT allocate memory for ne.evaluate in multithreading
+    # as it will introduce race-condition
     if out is not None:
         assert out.shape == x.shape
 
@@ -177,6 +179,9 @@ def to_float_np(x, nodata=None, scale=1, offset=0, dtype="float32", out=None):
     offset = float_type(offset)
 
     params = dict(_nan=_nan, scale=scale, offset=offset, x=x, nodata=nodata)
+
+    # warnings: Do NOT allocate memory for ne.evaluate in multithreading
+    # as it will introduce race-condition
     if out is not None:
         assert out.shape == x.shape
 

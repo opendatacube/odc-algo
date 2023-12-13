@@ -148,12 +148,13 @@ def erase_bad(x, where, inplace=False, nodata=None):
 
 
 def from_float_np(x, dtype, nodata, scale=1, offset=0, where=None, out=None):
-    scale = np.float32(scale)
-    offset = np.float32(offset)
+    float_type = np.dtype(dtype).type
+    scale = float_type(scale)
+    offset = float_type(offset)
 
-    if out is None:
-        out = np.empty_like(x, dtype=dtype)
-    else:
+    # warnings: Do NOT allocate memory for ne.evaluate in multithreading
+    # as it will introduce race-condition
+    if out is not None:
         assert out.shape == x.shape
 
     params = dict(x=x, nodata=nodata, scale=scale, offset=offset)
@@ -167,9 +168,7 @@ def from_float_np(x, dtype, nodata, scale=1, offset=0, where=None, out=None):
     else:
         expr = "where(x == x, x*scale + offset, nodata)"
 
-    ne.evaluate(expr, local_dict=params, out=out, casting="unsafe")
-
-    return out
+    return ne.evaluate(expr, local_dict=params, out=out, casting="unsafe")
 
 
 def to_float_np(x, nodata=None, scale=1, offset=0, dtype="float32", out=None):
@@ -180,18 +179,15 @@ def to_float_np(x, nodata=None, scale=1, offset=0, dtype="float32", out=None):
     offset = float_type(offset)
 
     params = dict(_nan=_nan, scale=scale, offset=offset, x=x, nodata=nodata)
-    if out is None:
-        out = np.empty_like(x, dtype=dtype)
-    else:
+
+    # warnings: Do NOT allocate memory for ne.evaluate in multithreading
+    # as it will introduce race-condition
+    if out is not None:
         assert out.shape == x.shape
 
     if nodata is None:
         return ne.evaluate(
             "x*scale + offset", out=out, casting="unsafe", local_dict=params
-        )
-    elif scale == 1 and offset == 0:
-        return ne.evaluate(
-            "where(x == nodata, _nan, x)", out=out, casting="unsafe", local_dict=params
         )
     else:
         return ne.evaluate(

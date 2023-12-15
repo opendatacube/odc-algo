@@ -54,7 +54,6 @@ from ._percentile import xr_quantile
 from ._rgba import colorize, is_rgb, to_rgba, to_rgba_np
 from ._tiff import save_cog
 from ._version import __version__
-from ._warp import xr_reproject
 
 __all__ = (
     "apply_numexpr",
@@ -100,7 +99,6 @@ __all__ = (
     "to_rgba",
     "to_rgba_np",
     "colorize",
-    "xr_reproject",
     "save_cog",
     "xr_quantile",
     "pool_broadcast",

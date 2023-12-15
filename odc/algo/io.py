@@ -19,10 +19,10 @@ from typing import (
 from datacube import Datacube
 from datacube.model import Dataset
 from datacube.testutils.io import native_geobox
-from datacube.utils.geometry import GeoBox, gbox
 from ._grouper import group_by_nothing, solar_offset
 from ._masking import _max_fuser, _nodata_fuser, _or_fuser, enum_to_bool, mask_cleanup
-from ._warp import xr_reproject
+from odc.geo.geobox import GeoBox
+from odc.geo.xr import xr_reproject
 
 
 def compute_native_load_geobox(
@@ -101,34 +101,55 @@ def _split_by_grid(xx: xr.DataArray) -> List[xr.DataArray]:
     return [extract(grid_id, ii) for grid_id, ii in xx.groupby(xx.grid).groups.items()]
 
 
-# pylint: disable=too-many-arguments, too-many-locals
-def _load_with_native_transform_1(
+def _native_load_1(
     sources: xr.DataArray,
     bands: Tuple[str, ...],
     geobox: GeoBox,
-    native_transform: Callable[[xr.Dataset], xr.Dataset],
     basis: Optional[str] = None,
-    groupby: Optional[str] = None,
-    fuser: Optional[Callable[[xr.Dataset], xr.Dataset]] = None,
-    resampling: str = "nearest",
-    chunks: Optional[Dict[str, int]] = None,
     load_chunks: Optional[Dict[str, int]] = None,
     pad: Optional[int] = None,
-    **kwargs,
 ) -> xr.Dataset:
     if basis is None:
         basis = bands[0]
-
-    if load_chunks is None:
-        load_chunks = chunks
-
     (ds,) = sources.data[0]
     load_geobox = compute_native_load_geobox(geobox, ds, basis)
     if pad is not None:
-        load_geobox = gbox.pad(load_geobox, pad)
+        load_geobox = load_geobox.pad(pad)
 
     mm = ds.type.lookup_measurements(bands)
     xx = Datacube.load_data(sources, load_geobox, mm, dask_chunks=load_chunks)
+    return xx
+
+
+def native_load(
+    dss: Sequence[Dataset],
+    bands: Sequence[str],
+    geobox: GeoBox,
+    basis: Optional[str] = None,
+    load_chunks: Optional[Dict[str, int]] = None,
+    pad: Optional[int] = None,
+):
+    sources = group_by_nothing(list(dss), solar_offset(geobox.extent))
+    for srcs in _split_by_grid(sources):
+        _xx = _native_load_1(
+            srcs,
+            tuple(bands),
+            geobox,
+            basis=basis,
+            load_chunks=load_chunks,
+            pad=pad,
+        )
+        yield _xx
+
+
+# pylint: disable=too-many-arguments, too-many-locals
+def _apply_native_transform_1(
+    xx: xr.Dataset,
+    geobox: GeoBox,
+    native_transform: Callable[[xr.Dataset], xr.Dataset],
+    groupby: Optional[str] = None,
+    fuser: Optional[Callable[[xr.Dataset], xr.Dataset]] = None,
+) -> xr.Dataset:
     xx = native_transform(xx)
 
     if groupby is not None:
@@ -136,13 +157,7 @@ def _load_with_native_transform_1(
             fuser = _nodata_fuser  # type: ignore
         xx = xx.groupby(groupby).map(fuser)
 
-    _chunks = None
-    if chunks is not None:
-        _chunks = tuple(chunks.get(ax, -1) for ax in ("y", "x"))
-
-    return xr_reproject(
-        xx, geobox, chunks=_chunks, resampling=resampling, **kwargs
-    )  # type: ignore
+    return xx
 
 
 def load_with_native_transform(
@@ -206,44 +221,44 @@ def load_with_native_transform(
     if chunks is None:
         chunks = kw.get("dask_chunks", None)
 
-    sources = group_by_nothing(list(dss), solar_offset(geobox.extent))
+    if load_chunks is None:
+        load_chunks = chunks
+
     _xx = []
     # fail if the intended transform not available
     # to avoid any unexpected results
-    for srcs in _split_by_grid(sources):
+    for xx in native_load(dss, bands, geobox, basis, load_chunks, pad):
         extra_args = choose_transform_path(
-            srcs.crs,
+            xx.crs,
             geobox.crs,
             kw.get("transform_code"),
             kw.get("area_of_interest"),
         )
+        yy = _apply_native_transform_1(
+            xx,
+            geobox,
+            native_transform,
+            groupby=groupby,
+            fuser=fuser,
+        )
 
         _xx += [
-            _load_with_native_transform_1(
-                srcs,
-                tuple(bands),
+            xr_reproject(
+                yy,
                 geobox,
-                native_transform,
-                basis=basis,
                 resampling=resampling,
-                groupby=groupby,
-                fuser=fuser,
                 chunks=chunks,
-                load_chunks=load_chunks,
-                pad=pad,
                 **extra_args,
-            )
+            )  # type: ignore
         ]
 
     if len(_xx) == 1:
         xx = _xx[0]
     else:
-        xx = xr.concat(_xx, sources.dims[0])  # type: ignore
+        xx = xr.concat(_xx, _xx[0].dims[0])  # type: ignore
         if groupby != "idx":
             xx = xx.groupby(groupby).map(fuser)
-
     # TODO: probably want to replace spec MultiIndex with just `time` component
-
     return xx
 
 

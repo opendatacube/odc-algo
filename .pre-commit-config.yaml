@@ -1,0 +1,39 @@
+---
+repos:
+  - repo: https://github.com/adrienverge/yamllint
+    rev: v1.32.0
+    hooks:
+      - id: yamllint
+        args: ['-c', '.yamllint']
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.4.0
+    hooks:
+      - id: end-of-file-fixer
+      - id: check-docstring-first
+      - id: check-json
+      - id: check-yaml
+      - id: debug-statements
+      - id: name-tests-test
+        args: ['--django']
+      - id: requirements-txt-fixer
+      - id: check-added-large-files
+      - id: check-merge-conflict
+        # isort broke 'libs/ui' by reordering imports
+        #  - repo: https://github.com/pycqa/isort
+        #    rev: 5.10.1
+        #    hooks:
+        #      - id: isort
+        #        name: isort (python)
+        #        args: [ "--profile", "black", "--filter-files" ]
+  - repo: https://github.com/psf/black
+    rev: 23.7.0
+    hooks:
+      - id: black
+  - repo: https://github.com/pre-commit/mirrors-pylint
+    rev: 'v3.0.0a5'  # Use the sha / tag you want to point at
+    hooks:
+      - id: pylint
+  - repo: https://github.com/PyCQA/flake8
+    rev: '6.0.0'
+    hooks:
+      - id: flake8

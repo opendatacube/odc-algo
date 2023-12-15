@@ -1,0 +1,3 @@
+prune tests
+prune .*
+exclude .* *.yml *.ini *.in *rc

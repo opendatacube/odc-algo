@@ -53,8 +53,10 @@ from ._numexpr import apply_numexpr, safe_div
 from ._percentile import xr_quantile
 from ._rgba import colorize, is_rgb, to_rgba, to_rgba_np
 from ._tiff import save_cog
-from ._version import __version__
+from importlib.metadata import version
 from ._warp import xr_reproject
+
+__version__ = version("odc-stats")
 
 __all__ = (
     "apply_numexpr",

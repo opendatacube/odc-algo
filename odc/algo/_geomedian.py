@@ -69,8 +69,8 @@ def geomedian_block_processor(
     result["smad"] = xr.DataArray(data=smad, dims=dims[:2], coords=result.coords)
     result["bcmad"] = xr.DataArray(data=bcmad, dims=dims[:2], coords=result.coords)
 
-    # Compute the count of valid observations
     count_good = np.all(array.data != nodata, axis=2).sum(axis=2)
+
     result["count"] = xr.DataArray(
         data=count_good, dims=dims[:2], coords=result.coords
     ).astype("uint16")

@@ -206,6 +206,7 @@ fn py_percentile_f64<'a>(
 }
 
 #[pymodule]
+#[pyo3(name = "_backend")]
 fn backend(_py: Python, m: &PyModule) -> PyResult<()> {
 
     m.add_function(wrap_pyfunction!(py_geomedian, m)?)?;

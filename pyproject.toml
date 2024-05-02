@@ -2,12 +2,45 @@
 requires = ["maturin>=1.0,<2.0"]
 build-backend = "maturin"
 
-#[build-system]
-#requires = ["setuptools>=51.0.0", "wheel", "setuptools-rust"]
-#build-backend = "setuptools.build_meta"
-
 [tool.maturin]
 #module-name = "odc-algo-backend.lib"
 module-name = "odc.algo._backend"
 # Build artifacts with the specified Cargo profile
 profile = "release"
+
+[project]
+name = "odc-algo"
+description = "Miscellaneous Algorithmic helper methods"
+authors = [{name = "Open Data Cube"}]
+maintainers = [{name = "Open Data Cube"}]
+license = {text = "Apache License 2.0"}
+requires-python = ">=3.8"
+dependencies = [
+    "affine",
+    "dask",
+    "dask-image",
+    "datacube>=1.8.5",
+    "distributed",
+    "numexpr",
+    "numpy",
+    "rasterio>=1.3.2",
+    "scikit-image",
+    "toolz",
+    "xarray",
+]
+dynamic = ["version"]
+
+[project.readme]
+file = "README.md"
+content-type = "text/markdown"
+
+[project.urls]
+Homepage = "https://github.com/opendatacube/odc-tools/"
+
+[project.optional-dependencies]
+s3 = [
+    "boto3",
+    "odc-cloud",
+]
+test = ["pytest", "pytest-datadir"]
+

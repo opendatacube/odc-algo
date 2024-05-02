@@ -44,3 +44,27 @@ s3 = [
 ]
 test = ["pytest", "pytest-datadir"]
 
+[tool.pixi.dependencies]
+
+python = ">=3.10"
+python-build = ">0.10.0.*"
+rust = "1.71.1.*"
+
+[tool.pixi.project]
+channels = ["conda-forge"]
+platforms = ["linux-64"]
+
+[tool.pixi.pypi-dependencies]
+odc-algo = { path = ".", editable = true }
+
+[tool.pixi.environments]
+default = { solve-group = "default" }
+s3 = { features = ["s3"], solve-group = "default" }
+test = { features = ["test"], solve-group = "default" }
+
+[tool.pixi.tasks]
+postinstall = "pip install --no-build-isolation --no-deps --disable-pip-version-check -e ."
+build = "python -m build"
+installhdstats = "pip install --prefer-binary -f https://packages.dea.ga.gov.au/hdstats/ hdstats"
+test = { cmd = "pytest", depends_on = [ "postinstall", "installhdstats" ] }
+testgm = { cmd = "pytest tests/test_geomedian.py", depends_on = [ "postinstall", "installhdstats" ] }

@@ -1,30 +1,63 @@
-odc.algo
-========
+## Open Data Cube Algorithms
 
-Algorithm utils of various kind.
+[Xarray] and [Dask] friendly EO Processing Algorithms and Utilities.
 
-Installation
-------------
+> **Note:** This package only contains algorithms. If you want to use them for processing
+> EO data, you'll find using [odc-stats] much simpler.
+
+
+- Cloud Masking
+- Geometric Median
+- Percentiles
+- Dask Aware Raster Reprojection
+- Efficiently generating and saving Cloud Optimized GeoTIFFs to S3
+- Reshaping Dask Arrays for Efficient Computation
+- Converting between Floats with NaNs and Ints with nodata values
+
+
+[Dask]: https://www.dask.org/
+[Xarray]: https://docs.xarray.dev/en/stable/
+[odc-stats]: https://github.com/opendatacube/odc-stats
+
+## Installation
 
 ```
 pip install odc-algo
 ```
 
-Usage
------
+## Usage
 
-Building
---------
+## Building
 
-1. Install Rust. Follow instructions at https://www.rust-lang.org/tools/install
-2. Install the python build tool. `pip install build`
-3. Build the package. `python -m build`
+1. [Install Rust](https://www.rust-lang.org/tools/install)
+2. Install the Python build tool. `python -m pip install build`
+3. Build this package. `python -m build`
 
 
-Development
--------
+## Run tests
+
+Test the Rust backend `cargo test`.
+
+
+
+
+## Development
 
 1. Follow build instructions
 2. Install as dev `pip install -e .[dev]`
+
 This will still compile the rust code, but without optimisations. Which may cause the algorithms to be VERY slow.
 Alternatively, install with the whl file.
+
+
+# Tasks
+
+- [ ] Decide whether to use [pixi], or uv. I think pixi, it handles Rust stuff.
+- [ ] Update GitHub Actions to build and test Rust backend
+- [ ] Update GitHub Actions to build and test against multiple Python versions
+- [ ] Consider what type of binary wheels to build. [abi3/multi-python version compatible is tempting](https://pyo3.rs/v0.13.2/building_and_distribution.html#py_limited_apiabi3)
+- [ ] Update Rust dependencies.
+- [ ] De-duplicate with [odc-geo]. It includes COG and Warp functionality that's better maintained, but may not be identical...
+
+[odc-geo]: https://github.com/opendatacube/odc-geo
+[pixi]: https://pixi.sh/latest/

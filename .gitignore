@@ -14,3 +14,7 @@ dist
 *.pyc
 
 build
+# pixi environments
+.pixi
+*.egg-info
+

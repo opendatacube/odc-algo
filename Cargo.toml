@@ -1,7 +1,7 @@
 [package]
 name = "odc-algo-backend"
-version = "0.2.0"
-authors = ["kieran"]
+version = "0.3.0"
+authors = ["kieran", "Damien Ayers"]
 edition = "2018"
 
 [lib]

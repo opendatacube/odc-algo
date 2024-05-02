@@ -1,5 +1,0 @@
-prune tests
-prune .*
-exclude .* *.yml *.ini *.in *rc
-include Cargo.toml
-recursive-include src *

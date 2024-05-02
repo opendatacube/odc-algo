@@ -1,4 +1,13 @@
 [build-system]
-requires = ["setuptools>=51.0.0", "wheel", "setuptools_scm[toml]>=6.2", "setuptools-rust"]
-build-backend = "setuptools.build_meta"
-[tool.setuptools_scm]
+requires = ["maturin>=1.0,<2.0"]
+build-backend = "maturin"
+
+#[build-system]
+#requires = ["setuptools>=51.0.0", "wheel", "setuptools-rust"]
+#build-backend = "setuptools.build_meta"
+
+[tool.maturin]
+#module-name = "odc-algo-backend.lib"
+module-name = "odc.algo._backend"
+# Build artifacts with the specified Cargo profile
+profile = "release"

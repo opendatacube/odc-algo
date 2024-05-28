@@ -780,13 +780,29 @@ def _nodata_fuser(xx, **kw):
 def _fuse_mean_np(*aa, nodata):
     assert len(aa) > 0
 
-    out = aa[0].astype(np.float32)
-    count = (aa[0] != nodata).astype(np.float32)
-    for a in aa[1:]:
-        out += a.astype(np.float32)
-        count += a != nodata
+    out = ne.evaluate(
+        "where((a==a)&(a!=nodata), a, 0)",
+        local_dict={"a": aa[0], "nodata": nodata},
+        casting="unsafe",
+    )
+    count = ne.evaluate(
+        "where((a==a)&(a!=nodata), 1, 0)",
+        local_dict={"a": aa[0], "nodata": nodata},
+        casting="unsafe",
+    )
 
-    out -= (len(aa) - count) * nodata
+    for a in aa[1:]:
+        out += ne.evaluate(
+            "where((a==a)&(a!=nodata), a, 0)",
+            local_dict={"a": a, "nodata": nodata},
+            casting="unsafe",
+        )
+        count += ne.evaluate(
+            "where((a==a)&(a!=nodata), 1, 0)",
+            local_dict={"a": a, "nodata": nodata},
+            casting="unsafe",
+        )
+
     with np.errstate(divide="ignore", invalid="ignore"):
         out = np.round(out / count).astype(aa[0].dtype)
         out[count == 0] = nodata

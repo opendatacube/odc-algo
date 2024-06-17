@@ -107,6 +107,7 @@ def _load_with_native_transform_1(
     bands: Tuple[str, ...],
     geobox: GeoBox,
     native_transform: Callable[[xr.Dataset], xr.Dataset],
+    optional_bands: Optional[Tuple[str, ...]] = None,
     basis: Optional[str] = None,
     groupby: Optional[str] = None,
     fuser: Optional[Callable[[xr.Dataset], xr.Dataset]] = None,
@@ -128,6 +129,13 @@ def _load_with_native_transform_1(
         load_geobox = gbox.pad(load_geobox, pad)
 
     mm = ds.type.lookup_measurements(bands)
+    if optional_bands is not None:
+        try:
+            om = ds.type.lookup_measurements(optional_bands)
+        except:
+            pass
+        else:
+            mm.update(om)
     xx = Datacube.load_data(sources, load_geobox, mm, dask_chunks=load_chunks)
     xx = native_transform(xx)
 
@@ -150,6 +158,7 @@ def load_with_native_transform(
     bands: Sequence[str],
     geobox: GeoBox,
     native_transform: Callable[[xr.Dataset], xr.Dataset],
+    optional_bands: Optional[Tuple[str, ...]] = None,
     basis: Optional[str] = None,
     groupby: Optional[str] = None,
     fuser: Optional[Callable[[xr.Dataset], xr.Dataset]] = None,
@@ -224,6 +233,7 @@ def load_with_native_transform(
                 tuple(bands),
                 geobox,
                 native_transform,
+                optional_bands=tuple(optional_bands),
                 basis=basis,
                 resampling=resampling,
                 groupby=groupby,

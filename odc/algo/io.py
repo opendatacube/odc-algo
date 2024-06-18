@@ -132,7 +132,7 @@ def _load_with_native_transform_1(
     if optional_bands is not None:
         try:
             om = ds.type.lookup_measurements(optional_bands)
-        except:
+        except KeyError:
             pass
         else:
             mm.update(om)

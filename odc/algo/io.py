@@ -130,12 +130,13 @@ def _load_with_native_transform_1(
 
     mm = ds.type.lookup_measurements(bands)
     if optional_bands is not None:
-        try:
-            om = ds.type.lookup_measurements(optional_bands)
-        except KeyError:
-            pass
-        else:
-            mm.update(om)
+        for ob in optional_bands:
+            try:
+                om = ds.type.lookup_measurements(ob)
+            except KeyError:
+                continue
+            else:
+                mm.update(om)
     xx = Datacube.load_data(sources, load_geobox, mm, dask_chunks=load_chunks)
     xx = native_transform(xx)
 

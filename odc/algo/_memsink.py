@@ -374,7 +374,7 @@ def da_yxbt_sink(
     return _da_from_mem(token_done, shape=shape, dtype=dtype, chunks=chunks, name=name)
 
 
-def yxbt_sink(ds: xr.Dataset, chunks: Tuple[int, int, int, int]) -> xr.DataArray:
+def yxbt_sink(ds: xr.Dataset, chunks: Tuple[int, int, int, int], name="yxbt") -> xr.DataArray:
     """
     Given a Dask dataset with several bands and ``T,Y,X`` axis order on input,
     turn that into a Dask DataArray with axis order being ``Y, X, Band, T``.
@@ -388,10 +388,12 @@ def yxbt_sink(ds: xr.Dataset, chunks: Tuple[int, int, int, int]) -> xr.DataArray
 
     :param ds: Dataset with Dask based arrays ``T,Y,X`` axis order
     :param chunks: Chunk size for output array, example: ``(100, 100, -1, -1)``
+    :param name: A name given to generate memory cache token
+       WARNINGS: if left as default with >= 2 DataArrays with same dtype and shape
+       will cause "broken" memory
 
     Gotchas
     =======
-
     - Output array can not be moved from one worker to another.
       - Works with in-process Client
       - Works with single worker cluster
@@ -403,7 +405,7 @@ def yxbt_sink(ds: xr.Dataset, chunks: Tuple[int, int, int, int]) -> xr.DataArray
     xarray DataArray backed by Dask array.
     """
     b0, *_ = ds.data_vars.values()
-    data = da_yxbt_sink(tuple(dv.data for dv in ds.data_vars.values()), chunks)
+    data = da_yxbt_sink(tuple(dv.data for dv in ds.data_vars.values()), chunks, name=name)
     attrs = dict(b0.attrs)
     dims = b0.dims[1:] + ("band", b0.dims[0])
 
@@ -413,7 +415,7 @@ def yxbt_sink(ds: xr.Dataset, chunks: Tuple[int, int, int, int]) -> xr.DataArray
     return xr.DataArray(data=data, dims=dims, coords=coords, attrs=attrs)
 
 
-def yxt_sink(band: xr.DataArray, chunks: Tuple[int, int, int]) -> xr.DataArray:
+def yxt_sink(band: xr.DataArray, chunks: Tuple[int, int, int], name="yxt") -> xr.DataArray:
     """
     Load ``T,Y,X` dataset into RAM with transpose to ``Y,X,T``, then present
     that as Dask array with specified chunking.
@@ -422,9 +424,13 @@ def yxt_sink(band: xr.DataArray, chunks: Tuple[int, int, int]) -> xr.DataArray:
        Dask backed :class:`xr.DataArray` data in ``T,Y,X`` order
     :param chunks:
        Desired output chunk size in output order ``Y,X,T``
+    :param name:
+       A name given to generate memory cache token
+       WARNINGS: if left as default with >= 2 DataArrays with same dtype and shape
+       will cause "broken" memory
     :return:
        Dask backed :class:`xr.DataArray` with requested chunks and ``Y,X,T`` axis order
     """
-    data = da_yxt_sink(band.data, chunks=chunks)
+    data = da_yxt_sink(band.data, chunks=chunks, name=name)
     dims = band.dims[1:] + (band.dims[0],)
     return xr.DataArray(data=data, dims=dims, coords=band.coords, attrs=band.attrs)

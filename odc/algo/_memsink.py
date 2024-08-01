@@ -388,10 +388,12 @@ def yxbt_sink(ds: xr.Dataset, chunks: Tuple[int, int, int, int], name="yxbt") ->
 
     :param ds: Dataset with Dask based arrays ``T,Y,X`` axis order
     :param chunks: Chunk size for output array, example: ``(100, 100, -1, -1)``
+    :param name: A name given to generate memory cache token
+       WARNINGS: if left as default with >= 2 DataArrays with same dtype and shape
+       will cause "broken" memory
 
     Gotchas
     =======
-
     - Output array can not be moved from one worker to another.
       - Works with in-process Client
       - Works with single worker cluster
@@ -422,6 +424,10 @@ def yxt_sink(band: xr.DataArray, chunks: Tuple[int, int, int], name="yxt") -> xr
        Dask backed :class:`xr.DataArray` data in ``T,Y,X`` order
     :param chunks:
        Desired output chunk size in output order ``Y,X,T``
+    :param name:
+       A name given to generate memory cache token
+       WARNINGS: if left as default with >= 2 DataArrays with same dtype and shape
+       will cause "broken" memory
     :return:
        Dask backed :class:`xr.DataArray` with requested chunks and ``Y,X,T`` axis order
     """

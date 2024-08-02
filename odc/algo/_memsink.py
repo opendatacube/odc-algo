@@ -345,7 +345,7 @@ def da_yxt_sink(band: da.Array, chunks: Tuple[int, int, int], name="yxt") -> da.
 
 
 def da_yxbt_sink(
-    bands: Tuple[da.Array, ...], chunks: Tuple[int, ...], name="yxbt"
+    bands: Tuple[da.Array, ...], chunks: Tuple[int, ...], dtype=None, name="yxbt"
 ) -> da.Array:
     """
     each band is in <t,y,x>
@@ -356,7 +356,8 @@ def da_yxbt_sink(
     tk = tokenize(*bands, chunks, name)
 
     b = bands[0]
-    dtype = b.dtype
+    if dtype is None:
+        dtype = b.dtype
     nt, ny, nx = b.shape
     nb = len(bands)
     shape = (ny, nx, nb, nt)
@@ -374,7 +375,9 @@ def da_yxbt_sink(
     return _da_from_mem(token_done, shape=shape, dtype=dtype, chunks=chunks, name=name)
 
 
-def yxbt_sink(ds: xr.Dataset, chunks: Tuple[int, int, int, int], name="yxbt") -> xr.DataArray:
+def yxbt_sink(
+    ds: xr.Dataset, chunks: Tuple[int, int, int, int], dtype=None, name="yxbt"
+) -> xr.DataArray:
     """
     Given a Dask dataset with several bands and ``T,Y,X`` axis order on input,
     turn that into a Dask DataArray with axis order being ``Y, X, Band, T``.
@@ -388,6 +391,7 @@ def yxbt_sink(ds: xr.Dataset, chunks: Tuple[int, int, int, int], name="yxbt") ->
 
     :param ds: Dataset with Dask based arrays ``T,Y,X`` axis order
     :param chunks: Chunk size for output array, example: ``(100, 100, -1, -1)``
+    :param dtype: dtype of Array to sink to
     :param name: A name given to generate memory cache token
        WARNINGS: if left as default with >= 2 DataArrays with same dtype and shape
        will cause "broken" memory
@@ -405,7 +409,9 @@ def yxbt_sink(ds: xr.Dataset, chunks: Tuple[int, int, int, int], name="yxbt") ->
     xarray DataArray backed by Dask array.
     """
     b0, *_ = ds.data_vars.values()
-    data = da_yxbt_sink(tuple(dv.data for dv in ds.data_vars.values()), chunks, name=name)
+    data = da_yxbt_sink(
+        tuple(dv.data for dv in ds.data_vars.values()), chunks, dtype=dtype, name=name
+    )
     attrs = dict(b0.attrs)
     dims = b0.dims[1:] + ("band", b0.dims[0])
 
@@ -415,7 +421,9 @@ def yxbt_sink(ds: xr.Dataset, chunks: Tuple[int, int, int, int], name="yxbt") ->
     return xr.DataArray(data=data, dims=dims, coords=coords, attrs=attrs)
 
 
-def yxt_sink(band: xr.DataArray, chunks: Tuple[int, int, int], name="yxt") -> xr.DataArray:
+def yxt_sink(
+    band: xr.DataArray, chunks: Tuple[int, int, int], name="yxt"
+) -> xr.DataArray:
     """
     Load ``T,Y,X` dataset into RAM with transpose to ``Y,X,T``, then present
     that as Dask array with specified chunking.

@@ -1,0 +1,122 @@
+<PAMDataset>
+  <Subdataset name="nbart_blue">
+    <PAMDataset>
+      <PAMRasterBand band="1">
+        <Metadata>
+          <MDI key="STATISTICS_MAXIMUM">4338</MDI>
+          <MDI key="STATISTICS_MEAN">1500.2383870681</MDI>
+          <MDI key="STATISTICS_MINIMUM">738</MDI>
+          <MDI key="STATISTICS_STDDEV">283.75126449421</MDI>
+        </Metadata>
+      </PAMRasterBand>
+    </PAMDataset>
+  </Subdataset>
+  <Subdataset name="nbart_swir_2">
+    <PAMDataset>
+      <PAMRasterBand band="1">
+        <Metadata>
+          <MDI key="STATISTICS_MAXIMUM">4220</MDI>
+          <MDI key="STATISTICS_MEAN">1685.7714717115</MDI>
+          <MDI key="STATISTICS_MINIMUM">353</MDI>
+          <MDI key="STATISTICS_STDDEV">390.02270220222</MDI>
+        </Metadata>
+      </PAMRasterBand>
+    </PAMDataset>
+  </Subdataset>
+  <Subdataset name="nbart_swir_1">
+    <PAMDataset>
+      <PAMRasterBand band="1">
+        <Metadata>
+          <MDI key="STATISTICS_MAXIMUM">4633</MDI>
+          <MDI key="STATISTICS_MEAN">2252.8454569677</MDI>
+          <MDI key="STATISTICS_MINIMUM">449</MDI>
+          <MDI key="STATISTICS_STDDEV">435.76682526947</MDI>
+        </Metadata>
+      </PAMRasterBand>
+    </PAMDataset>
+  </Subdataset>
+  <Subdataset name="nbart_red">
+    <PAMDataset>
+      <PAMRasterBand band="1">
+        <Metadata>
+          <MDI key="STATISTICS_MAXIMUM">4831</MDI>
+          <MDI key="STATISTICS_MEAN">1711.1121769251</MDI>
+          <MDI key="STATISTICS_MINIMUM">869</MDI>
+          <MDI key="STATISTICS_STDDEV">327.93430671874</MDI>
+        </Metadata>
+      </PAMRasterBand>
+    </PAMDataset>
+  </Subdataset>
+  <Subdataset name="nbart_nir">
+    <PAMDataset>
+      <PAMRasterBand band="1">
+        <Metadata>
+          <MDI key="STATISTICS_MAXIMUM">5173</MDI>
+          <MDI key="STATISTICS_MEAN">3169.5764721556</MDI>
+          <MDI key="STATISTICS_MINIMUM">811</MDI>
+          <MDI key="STATISTICS_STDDEV">530.34531078613</MDI>
+        </Metadata>
+      </PAMRasterBand>
+    </PAMDataset>
+  </Subdataset>
+  <Subdataset name="nbart_green">
+    <PAMDataset>
+      <PAMRasterBand band="1">
+        <Metadata>
+          <MDI key="STATISTICS_MAXIMUM">4704</MDI>
+          <MDI key="STATISTICS_MEAN">1694.7907895906</MDI>
+          <MDI key="STATISTICS_MINIMUM">861</MDI>
+          <MDI key="STATISTICS_STDDEV">305.0885111218</MDI>
+        </Metadata>
+      </PAMRasterBand>
+    </PAMDataset>
+  </Subdataset>
+  <Subdataset name="smad">
+    <PAMDataset>
+      <PAMRasterBand band="1">
+        <Metadata>
+          <MDI key="STATISTICS_MAXIMUM">0.070110380649567</MDI>
+          <MDI key="STATISTICS_MEAN">0.031565975993881</MDI>
+          <MDI key="STATISTICS_MINIMUM">0.0032537134829909</MDI>
+          <MDI key="STATISTICS_STDDEV">0.014687705073715</MDI>
+        </Metadata>
+      </PAMRasterBand>
+    </PAMDataset>
+  </Subdataset>
+  <Subdataset name="emad">
+    <PAMDataset>
+      <PAMRasterBand band="1">
+        <Metadata>
+          <MDI key="STATISTICS_MAXIMUM">4553.3461914062</MDI>
+          <MDI key="STATISTICS_MEAN">2018.7891131485</MDI>
+          <MDI key="STATISTICS_MINIMUM">784.70416259766</MDI>
+          <MDI key="STATISTICS_STDDEV">522.88894472764</MDI>
+        </Metadata>
+      </PAMRasterBand>
+    </PAMDataset>
+  </Subdataset>
+  <Subdataset name="count">
+    <PAMDataset>
+      <PAMRasterBand band="1">
+        <Metadata>
+          <MDI key="STATISTICS_MAXIMUM">69</MDI>
+          <MDI key="STATISTICS_MEAN">69</MDI>
+          <MDI key="STATISTICS_MINIMUM">69</MDI>
+          <MDI key="STATISTICS_STDDEV">0</MDI>
+        </Metadata>
+      </PAMRasterBand>
+    </PAMDataset>
+  </Subdataset>
+  <Subdataset name="bcmad">
+    <PAMDataset>
+      <PAMRasterBand band="1">
+        <Metadata>
+          <MDI key="STATISTICS_MAXIMUM">0.63934922218323</MDI>
+          <MDI key="STATISTICS_MEAN">0.22057701915156</MDI>
+          <MDI key="STATISTICS_MINIMUM">0.066042989492416</MDI>
+          <MDI key="STATISTICS_STDDEV">0.086398036069134</MDI>
+        </Metadata>
+      </PAMRasterBand>
+    </PAMDataset>
+  </Subdataset>
+</PAMDataset>

@@ -52,7 +52,7 @@ Alternatively, install with the whl file.
 
 # Tasks
 
-- [ ] Decide whether to use [pixi], or uv. I think pixi, it handles Rust stuff.
+- [X] Decide whether to use [pixi], or uv. I think pixi, it handles Rust stuff.
 - [ ] Document the Geomedian API we're trying to expose. See [odc-stats]
 - [ ] Document the Percentile API we're exposing.
 - [ ] Regresssion Tests instead of installing old dependencies like hdstats.
@@ -65,3 +65,4 @@ Alternatively, install with the whl file.
 
 [odc-geo]: https://github.com/opendatacube/odc-geo
 [pixi]: https://pixi.sh/latest/
+[abi3/multi-python version compatible is tempting]: https://pyo3.rs/v0.13.2/building_and_distribution.html#py_limited_apiabi3

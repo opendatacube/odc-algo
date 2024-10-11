@@ -32,8 +32,12 @@ maintainers = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/opendatacube/odc-tools/"
+Homepage = "https://www.opendatacube.org/"
+Source = "https://github.com/opendatacube/odc-algo/"
 
 [project.optional-dependencies]
 hdstats = ["hdstats>=0.1.8.post1"]
 s3 = ["boto3", "odc-cloud"]
+
+[tool.setuptools]
+packages = ["odc.algo"]

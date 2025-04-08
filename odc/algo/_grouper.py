@@ -17,8 +17,7 @@ from datacube.utils.dates import normalise_dt
 
 if TYPE_CHECKING:
     from collections.abc import Hashable, Iterable, Iterator
-
-    from datacube.utils.geometry import Geometry
+    from odc.geo import Geometry
 
 
 def mid_longitude(geom: Geometry) -> float:

@@ -15,15 +15,13 @@ import xarray as xr
 from affine import Affine
 from dask.base import is_dask_collection
 from dask.highlevelgraph import HighLevelGraph
-from datacube.utils import spatial_dims
-from datacube.utils.geometry import (
-    GeoBox,
-    compute_reproject_roi,
-    rio_reproject,
-    warp_affine,
-)
-from datacube.utils.geometry.gbox import GeoboxTiles
 
+from odc.geo.geobox import GeoBox
+from odc.geo.overlap import compute_reproject_roi
+from odc.geo.warp import rio_reproject, rio_warp_affine
+from odc.geo.xr import xr_coords, spatial_dims
+
+from odc.geo.geobox import GeoboxTiles
 from ._dask import crop_2d_dense, empty_maker, randomize, unpack_chunks
 from ._numeric import shape_shrink2
 
@@ -218,7 +216,7 @@ def xr_reproject_array(
     if dst_nodata is None:
         dst_nodata = src_nodata
 
-    src_geobox = src.geobox
+    src_geobox = src.odc.geobox
     assert src_geobox is not None
 
     yx_dims = spatial_dims(src)
@@ -227,7 +225,7 @@ def xr_reproject_array(
     src_dims = tuple(src.dims)
     dst_dims = src_dims[:axis] + geobox.dims + src_dims[axis + 2 :]
 
-    coords = geobox.xr_coords(with_crs=True)
+    coords = xr_coords(geobox, crs_coord_name="spatial_ref")
 
     # copy non-spatial coords from src to dst
     src_non_spatial_dims = src_dims[:axis] + src_dims[axis + 2 :]
@@ -325,7 +323,7 @@ def _shrink2(
     if xx.ndim == 2 or (xx.ndim == 3 and axis == 1):
         # [Y, X] or [B, Y, X]
         out = np.empty(out_shape, dtype=xx.dtype)
-        warp_affine(
+        rio_warp_affine(
             xx,
             out,
             Affine.scale(2),
@@ -340,7 +338,7 @@ def _shrink2(
         # Need to turn into B,Y,X order
         xx = xx.transpose((2, 0, 1))
         out = np.empty(out_shape[2:] + out_shape[:2], dtype=xx.dtype)
-        warp_affine(
+        rio_warp_affine(
             xx,
             out,
             Affine.scale(2),

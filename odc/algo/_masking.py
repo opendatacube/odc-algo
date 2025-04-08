@@ -65,7 +65,7 @@ def keep_good_only(x, where, inplace=False, nodata=None):
      - x[idx]  if where[idx] == True
     """
     if isinstance(x, xr.Dataset):
-        return x.apply(
+        return x.map(
             lambda x: keep_good_only(x, where, inplace=inplace, nodata=nodata),
             keep_attrs=True,
         )
@@ -215,7 +215,7 @@ def to_f32_np(x, nodata=None, scale=1, offset=0, out=None):
 
 def to_float(x, scale=1, offset=0, dtype="float32"):
     if isinstance(x, xr.Dataset):
-        return x.apply(
+        return x.map(
             to_float, scale=scale, offset=offset, dtype=dtype, keep_attrs=True
         )
 

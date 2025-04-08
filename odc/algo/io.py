@@ -15,9 +15,7 @@ from typing import (
 import xarray as xr
 from datacube import Datacube
 from datacube.testutils.io import native_geobox
-from datacube.utils.geometry import GeoBox, gbox
-from pyproj import aoi, transformer
-
+from odc.geo.geobox import GeoBox, pad as gbox_pad
 from ._grouper import group_by_nothing, solar_offset
 from ._masking import _max_fuser, _nodata_fuser, _or_fuser, enum_to_bool, mask_cleanup
 from ._warp import xr_reproject
@@ -47,7 +45,11 @@ def compute_native_load_geobox(
     """
     native: GeoBox = native_geobox(ds, basis=band)
     if buffer is None:
+<<<<<<< HEAD
         buffer = 10 * cast("float", max(map(abs, native.resolution)))  # type: ignore
+=======
+        buffer = 10 * cast(float, max(map(abs, (native.resolution.y, native.resolution.x))))  # type: ignore
+>>>>>>> 4e984c0 (update to datacube 1.9 and odc-geo)
 
     assert native.crs is not None
     return GeoBox.from_geopolygon(
@@ -127,13 +129,13 @@ def _load_with_native_transform_1(
     (ds,) = sources.data[0]
     load_geobox = compute_native_load_geobox(geobox, ds, basis)
     if pad is not None:
-        load_geobox = gbox.pad(load_geobox, pad)
+        load_geobox = gbox_pad(load_geobox, pad)
 
-    mm = ds.type.lookup_measurements(bands)
+    mm = ds.product.lookup_measurements(bands)
     if optional_bands is not None:
         for ob in optional_bands:
             try:
-                om = ds.type.lookup_measurements(ob)
+                om = ds.product.lookup_measurements(ob)
             except KeyError:
                 continue
             else:

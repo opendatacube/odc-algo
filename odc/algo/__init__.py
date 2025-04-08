@@ -56,7 +56,7 @@ from ._tiff import save_cog
 from importlib.metadata import version
 from ._warp import xr_reproject
 
-__version__ = version("odc-stats")
+__version__ = version("odc-algo")
 
 __all__ = (
     "apply_numexpr",

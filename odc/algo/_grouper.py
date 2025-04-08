@@ -7,7 +7,7 @@ from typing import Any, Dict, Hashable, Iterable, Iterator, List, Optional
 
 from datacube.model import Dataset
 from datacube.utils.dates import normalise_dt
-from datacube.utils.geometry import Geometry
+from odc.geo import Geometry
 
 
 def mid_longitude(geom: Geometry) -> float:

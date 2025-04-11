@@ -12,10 +12,15 @@ from typing import Any, Dict, Optional, Tuple, Union
 
 from odc.geo.geobox import GeoBox
 from odc.geo.overlap import compute_reproject_roi
-from odc.geo.warp import rio_reproject, rio_warp_affine
+# from odc.geo.warp import rio_reproject, rio_warp_affine as warp_affine
 from odc.geo.xr import xr_coords, spatial_dims
 
 from odc.geo.geobox import GeoboxTiles
+
+from datacube.utils.geometry import (
+    rio_reproject,
+    warp_affine,
+)
 from ._dask import crop_2d_dense, empty_maker, randomize, unpack_chunks
 from ._numeric import shape_shrink2
 from ._types import NodataType
@@ -315,7 +320,7 @@ def _shrink2(
     if xx.ndim == 2 or (xx.ndim == 3 and axis == 1):
         # [Y, X] or [B, Y, X]
         out = np.empty(out_shape, dtype=xx.dtype)
-        rio_warp_affine(
+        warp_affine(
             xx,
             out,
             Affine.scale(2),
@@ -330,7 +335,7 @@ def _shrink2(
         # Need to turn into B,Y,X order
         xx = xx.transpose((2, 0, 1))
         out = np.empty(out_shape[2:] + out_shape[:2], dtype=xx.dtype)
-        rio_warp_affine(
+        warp_affine(
             xx,
             out,
             Affine.scale(2),

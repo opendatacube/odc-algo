@@ -18,15 +18,11 @@ from dask.highlevelgraph import HighLevelGraph
 
 from odc.geo.geobox import GeoBox
 from odc.geo.overlap import compute_reproject_roi
-# from odc.geo.warp import rio_reproject, rio_warp_affine as warp_affine
+from odc.geo.warp import rio_reproject, rio_warp_affine as warp_affine
 from odc.geo.xr import xr_coords, spatial_dims
 
 from odc.geo.geobox import GeoboxTiles
 
-from datacube.utils.geometry import (
-    rio_reproject,
-    warp_affine,
-)
 from ._dask import crop_2d_dense, empty_maker, randomize, unpack_chunks
 from ._numeric import shape_shrink2
 

@@ -211,10 +211,10 @@ def load_with_native_transform(
         fuser = _nodata_fuser
 
     if groupby is None:
-        groupby = kw.get("group_by", "idx")
+        groupby = kw.pop("group_by", "idx")
 
     if chunks is None:
-        chunks = kw.get("dask_chunks", None)
+        chunks = kw.pop("dask_chunks", None)
 
     sources = group_by_nothing(list(dss), solar_offset(geobox.extent))
     _xx = []
@@ -224,9 +224,10 @@ def load_with_native_transform(
         extra_args = choose_transform_path(
             srcs.crs,
             geobox.crs,
-            kw.get("transform_code"),
-            kw.get("area_of_interest"),
+            kw.pop("transform_code"),
+            kw.pop("area_of_interest"),
         )
+        extra_args.update(kw)
 
         _xx += [
             _load_with_native_transform_1(

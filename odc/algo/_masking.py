@@ -119,7 +119,7 @@ def erase_bad(x, where, inplace=False, nodata=None):
      - x[idx]  if where[idx] == False
     """
     if isinstance(x, xr.Dataset):
-        return x.apply(lambda x: erase_bad(x, where, inplace=inplace), keep_attrs=True)
+        return x.map(lambda x: erase_bad(x, where, inplace=inplace), keep_attrs=True)
 
     assert x.shape == where.shape
     if nodata is None:
@@ -238,7 +238,7 @@ def to_f32(x, scale=1, offset=0):
 
 def from_float(x, dtype, nodata, scale=1, offset=0):
     if isinstance(x, xr.Dataset):
-        return x.apply(from_float, keep_attrs=True, args=(dtype, nodata, scale, offset))
+        return x.map(from_float, keep_attrs=True, args=(dtype, nodata, scale, offset))
 
     attrs = x.attrs.copy()
     attrs["nodata"] = nodata

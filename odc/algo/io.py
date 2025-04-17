@@ -45,14 +45,14 @@ def compute_native_load_geobox(
     """
     native: GeoBox = native_geobox(ds, basis=band)
     if buffer is None:
-        buffer = 10 * cast(float, max(map(abs, (native.resolution.y, native.resolution.x))))  # type: ignore
+        buffer = 10 * cast(float, max(map(abs, native.resolution.xy)))  # type: ignore
 
     assert native.crs is not None
     return GeoBox.from_geopolygon(
         dst_geobox.extent.to_crs(native.crs).buffer(buffer),
         crs=native.crs,
         resolution=native.resolution,
-        align=native.alignment,
+        align=native.alignment,  # this should already be XY
     )
 
 
@@ -224,8 +224,8 @@ def load_with_native_transform(
         extra_args = choose_transform_path(
             srcs.crs,
             geobox.crs,
-            kw.pop("transform_code"),
-            kw.pop("area_of_interest"),
+            kw.pop("transform_code", None),
+            kw.pop("area_of_interest", None),
         )
         extra_args.update(kw)
 

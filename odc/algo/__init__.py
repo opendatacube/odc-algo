@@ -53,7 +53,7 @@ from ._memsink import (
     yxbt_sink_to_mem,
     yxt_sink,
 )
-from ._numexpr import apply_numexpr, safe_div
+from ._numexpr import apply_numexpr, safe_div, apply_numexpr_da
 from ._percentile import xr_quantile
 from ._rgba import colorize, is_rgb, to_rgba, to_rgba_np
 from ._tiff import save_cog

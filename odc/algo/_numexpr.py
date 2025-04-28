@@ -15,12 +15,10 @@ import xarray as xr
 
 from ._dask import flatten_kv, randomize, unflatten_kv
 
-
 def apply_numexpr_np(
     expr: str,
     data: dict[str, Any] | None = None,
     dtype=None,
-    out: np.ndarray | None = None,
     casting="safe",
     order="K",
     **params,
@@ -31,17 +29,26 @@ def apply_numexpr_np(
     else:
         data.update(params)
 
-    if out is None and dtype is not None:
-        # This needs to be np.ndarray
-        arrays = [x for x in data.values() if isinstance(x, np.ndarray)]
-        if len(arrays) == 0:
-            raise ValueError("Could not find any arrays on input")
+    out = ne.evaluate(expr, local_dict=data, casting=casting, order=order)
+    if dtype is None:
+        return out
+    else:
+        return out.astype(dtype)
 
-        sample_input = arrays[0]
-        out = np.empty_like(sample_input, dtype=dtype)
+def expr_eval_da(expr, data, dtype="float32", name="expr_eval", **kwargs):
+    tk = tokenize(apply_numexpr_np, *flatten_kv(data))
+    op = functools.partial(
+        apply_numexpr_np, expr, dtype=dtype, casting="unsafe", order="K", **kwargs
+    )
 
-    return ne.evaluate(expr, local_dict=data, out=out, casting=casting, order=order)
-
+    return da.map_blocks(
+        lambda op, *data: op(unflatten_kv(data)),
+        op,
+        *flatten_kv(data),
+        name=f"{name}_{tk}",
+        dtype=dtype,
+        meta=np.array((), dtype=dtype),
+    )
 
 def apply_numexpr(
     expr: str,

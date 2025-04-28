@@ -15,6 +15,7 @@ import xarray as xr
 
 from ._dask import flatten_kv, randomize, unflatten_kv
 
+
 def apply_numexpr_np(
     expr: str,
     data: dict[str, Any] | None = None,
@@ -35,6 +36,7 @@ def apply_numexpr_np(
     else:
         return out.astype(dtype)
 
+
 def expr_eval_da(expr, data, dtype="float32", name="expr_eval", **kwargs):
     tk = tokenize(apply_numexpr_np, *flatten_kv(data))
     op = functools.partial(
@@ -49,6 +51,7 @@ def expr_eval_da(expr, data, dtype="float32", name="expr_eval", **kwargs):
         dtype=dtype,
         meta=np.array((), dtype=dtype),
     )
+
 
 def apply_numexpr(
     expr: str,

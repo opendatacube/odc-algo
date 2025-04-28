@@ -53,7 +53,7 @@ from ._memsink import (
     yxbt_sink_to_mem,
     yxt_sink,
 )
-from ._numexpr import apply_numexpr, safe_div, apply_numexpr_da
+from ._numexpr import apply_numexpr, safe_div, expr_eval
 from ._percentile import xr_quantile
 from ._rgba import colorize, is_rgb, to_rgba, to_rgba_np
 from ._tiff import save_cog
@@ -78,6 +78,7 @@ __all__ = (
     "da_yxt_sink",
     "dask_compute_stream",
     "enum_to_bool",
+    "expr_eval",
     "erase_bad",
     "fmask_to_bool",
     "from_float",

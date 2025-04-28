@@ -12,6 +12,8 @@ import dask.array as da
 import numexpr as ne
 import numpy as np
 import xarray as xr
+from typing import Any, Dict, Optional
+from dask.base import tokenize
 
 from ._dask import flatten_kv, randomize, unflatten_kv
 
@@ -37,7 +39,7 @@ def apply_numexpr_np(
         return out.astype(dtype)
 
 
-def expr_eval_da(expr, data, dtype="float32", name="expr_eval", **kwargs):
+def expr_eval(expr, data, dtype="float32", name="expr_eval", **kwargs):
     tk = tokenize(apply_numexpr_np, *flatten_kv(data))
     op = functools.partial(
         apply_numexpr_np, expr, dtype=dtype, casting="unsafe", order="K", **kwargs

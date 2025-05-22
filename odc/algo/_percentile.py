@@ -132,8 +132,6 @@ def xr_quantile(
             data_vars[band] = (out_dims, np.stack(data, axis=0))
 
     # pylint: disable=undefined-loop-variable
-    coords = dict(
-        (dim, src.coords[dim]) for dim in xx.dims[1:]
-    )  # pylint: disable=undefined-loop-variable
+    coords = dict((dim, src.coords[dim]) for dim in xx.dims[1:])  # pylint: disable=undefined-loop-variable
     coords["quantile"] = np.array(quantiles)
     return xr.Dataset(data_vars=data_vars, coords=coords, attrs=src.attrs)

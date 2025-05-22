@@ -149,9 +149,7 @@ def _load_with_native_transform_1(
     if chunks is not None:
         _chunks = tuple(chunks.get(ax, -1) for ax in ("y", "x"))
 
-    return xr_reproject(
-        xx, geobox, chunks=_chunks, resampling=resampling, **kwargs
-    )  # type: ignore
+    return xr_reproject(xx, geobox, chunks=_chunks, resampling=resampling, **kwargs)  # type: ignore
 
 
 def load_with_native_transform(

@@ -29,8 +29,16 @@ pip install odc-algo
 
 ## Building
 
-1. Install the Python build tool. `python -m pip install build`
-2. Build this package. `python -m build`
+1. [Install Rust](https://www.rust-lang.org/tools/install)
+2. Install the Python build tool. `python -m pip install build`
+3. Build this package. `python -m build`
+
+
+## Run tests
+
+Test the Rust backend `cargo test`.
+
+
 
 
 ## Development
@@ -38,12 +46,13 @@ pip install odc-algo
 1. Follow build instructions
 2. Install as dev `pip install -e .[dev]`
 
-Alternatively, install with the whl file.
+This will still compile the rust code, but without optimisations. Which may cause the algorithms to be VERY slow.
 
+Alternatively, install with the whl file.
 
 # Tasks
 
-- [ ] Decide whether to use [pixi], or uv. I think pixi, it handles Rust stuff.
+- [X] Decide whether to use [pixi], or uv. I think pixi, it handles Rust stuff.
 - [ ] Document the Geomedian API we're trying to expose. See [odc-stats]
 - [ ] Document the Percentile API we're exposing.
 - [ ] Regresssion Tests instead of installing old dependencies like hdstats.
@@ -56,3 +65,4 @@ Alternatively, install with the whl file.
 
 [odc-geo]: https://github.com/opendatacube/odc-geo
 [pixi]: https://pixi.sh/latest/
+[abi3/multi-python version compatible is tempting]: https://pyo3.rs/v0.13.2/building_and_distribution.html#py_limited_apiabi3

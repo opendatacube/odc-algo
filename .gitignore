@@ -81,3 +81,11 @@ docs/notebooks/
 .run/
 
 docker/wheels/
+
+*.pyc
+
+build
+# pixi environments
+.pixi
+*.egg-info
+

@@ -1,4 +1,4 @@
-from .backend import (
+from ._backend import (
     _geomedian,
     _geomedian_int16,
     _geomedian_uint16,

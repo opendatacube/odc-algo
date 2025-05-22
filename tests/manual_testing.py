@@ -84,8 +84,8 @@ def more_real_test():
 
 
 if __name__ == "__main__":
-    os.environ[
-        "DATACUBE_DB_URL"
-    ] = "postgresql://sandbox_reader:f0GelTszC2Umj1uu@localhost:5444/odc"
+    os.environ["DATACUBE_DB_URL"] = (
+        "postgresql://sandbox_reader:f0GelTszC2Umj1uu@localhost:5444/odc"
+    )
     more_real_test()
 #    main()

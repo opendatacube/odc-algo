@@ -1,6 +1,7 @@
 """
 Various utilities
 """
+
 from typing import Optional, Tuple, Union
 
 ROI = Union[slice, Tuple[slice, ...]]

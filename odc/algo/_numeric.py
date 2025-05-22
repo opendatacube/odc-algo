@@ -1,6 +1,7 @@
 """
 Misc numeric tooling
 """
+
 import numpy as np
 from typing import Optional, Tuple
 

@@ -1,5 +1,5 @@
-""" Helpers for dealing with RGB(A) images.
-"""
+"""Helpers for dealing with RGB(A) images."""
+
 import dask
 import dask.array as da
 import numpy as np

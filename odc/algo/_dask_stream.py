@@ -1,7 +1,8 @@
-""" Dask Distributed Tools
+"""Dask Distributed Tools
 
-   - dask_compute_stream
+- dask_compute_stream
 """
+
 import dask.bag
 import queue
 import threading

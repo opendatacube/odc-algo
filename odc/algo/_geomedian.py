@@ -1,6 +1,7 @@
 """
 Helper methods for Geometric Median computation.
 """
+
 from typing import Optional, Tuple, Union
 
 import dask

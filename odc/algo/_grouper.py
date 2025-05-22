@@ -1,4 +1,5 @@
 """Methods for grouping Datasets spatialy and otherwise."""
+
 import numpy as np
 import pandas as pd
 import xarray as xr

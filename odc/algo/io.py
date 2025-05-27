@@ -7,6 +7,7 @@
 from __future__ import annotations
 
 import json
+from pyproj import aoi, transformer
 from typing import (
     TYPE_CHECKING,
     cast,
@@ -18,7 +19,6 @@ from datacube.testutils.io import native_geobox
 from odc.geo.geobox import GeoBox, pad as gbox_pad
 from ._grouper import group_by_nothing, solar_offset
 from ._masking import _max_fuser, _nodata_fuser, _or_fuser, enum_to_bool, mask_cleanup
-from odc.geo.geobox import GeoBox
 from odc.geo.xr import xr_reproject
 
 if TYPE_CHECKING:
@@ -105,6 +105,7 @@ def _native_load_1(
     sources: xr.DataArray,
     bands: tuple[str, ...],
     geobox: GeoBox,
+    *,
     optional_bands: Optional[Tuple[str, ...]] = None,
     basis: Optional[str] = None,
     load_chunks: Optional[Dict[str, int]] = None,
@@ -134,6 +135,8 @@ def native_load(
     dss: Sequence[Dataset],
     bands: Sequence[str],
     geobox: GeoBox,
+    *,
+    optional_bands: Optional[Tuple[str, ...]] = None,
     basis: Optional[str] = None,
     load_chunks: Optional[Dict[str, int]] = None,
     pad: Optional[int] = None,
@@ -144,6 +147,7 @@ def native_load(
             srcs,
             tuple(bands),
             geobox,
+            optional_bands=optional_bands,
             basis=basis,
             load_chunks=load_chunks,
             pad=pad,
@@ -151,10 +155,8 @@ def native_load(
         yield _xx
 
 
-# pylint: disable=too-many-arguments, too-many-locals
 def _apply_native_transform_1(
     xx: xr.Dataset,
-    geobox: GeoBox,
     native_transform: Callable[[xr.Dataset], xr.Dataset],
     groupby: Optional[str] = None,
     fuser: Optional[Callable[[xr.Dataset], xr.Dataset]] = None,
@@ -174,10 +176,11 @@ def load_with_native_transform(
     bands: Sequence[str],
     geobox: GeoBox,
     native_transform: Callable[[xr.Dataset], xr.Dataset],
-    optional_bands: tuple[str, ...] | None = None,
-    basis: str | None = None,
-    groupby: str | None = None,
-    fuser: Callable[[xr.Dataset], xr.Dataset] | None = None,
+    *,
+    optional_bands: Optional[Tuple[str, ...]] = None,
+    basis: Optional[str] = None,
+    groupby: Optional[str] = None,
+    fuser: Optional[Callable[[xr.Dataset], xr.Dataset]] = None,
     resampling: str = "nearest",
     chunks: dict[str, int] | None = None,
     load_chunks: dict[str, int] | None = None,
@@ -236,7 +239,15 @@ def load_with_native_transform(
     _xx = []
     # fail if the intended transform not available
     # to avoid any unexpected results
-    for xx in native_load(dss, bands, geobox, basis, load_chunks, pad):
+    for xx in native_load(
+        dss,
+        bands,
+        geobox,
+        optional_bands=optional_bands,
+        basis=basis,
+        load_chunks=load_chunks,
+        pad=pad,
+    ):
         extra_args = choose_transform_path(
             xx.crs,
             geobox.crs,
@@ -246,15 +257,11 @@ def load_with_native_transform(
         extra_args.update(kw)
 
         yy = _apply_native_transform_1(
-                xx,
-                geobox,
-                native_transform,
-                optional_bands=tuple(optional_bands),
-                basis=basis,
-                resampling=resampling,
-                groupby=groupby,
-                fuser=fuser,
-            )
+            xx,
+            native_transform,
+            groupby=groupby,
+            fuser=fuser,
+        )
 
         _xx += [
             xr_reproject(
@@ -280,7 +287,8 @@ def load_enum_mask(
     dss: list[Dataset],
     band: str,
     geobox: GeoBox,
-    categories: Iterable[str | int],
+    *,
+    categories: Iterable[Union[str, int]],
     invert: bool = False,
     resampling: str = "nearest",
     groupby: str | None = None,
@@ -326,9 +334,10 @@ def load_enum_filtered(
     dss: Sequence[Dataset],
     band: str,
     geobox: GeoBox,
-    categories: Iterable[str | int],
-    filters: Iterable[tuple[str, int]] | None = None,
-    groupby: str | None = None,
+    *,
+    categories: Iterable[Union[str, int]],
+    filters: Optional[Iterable[Tuple[str, int]]] = None,
+    groupby: Optional[str] = None,
     resampling: str = "nearest",
     chunks: dict[str, int] | None = None,
     **kw,

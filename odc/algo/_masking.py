@@ -10,7 +10,7 @@ Also converting between float[with nans] and int[with nodata].
 
 from collections.abc import Iterable
 from functools import partial
-from typing import Any, Union
+from typing import Any
 
 import dask
 import dask.array as da
@@ -328,7 +328,7 @@ def _enum_to_mask_numexpr(
     invert: bool = False,
     value_true: int = 1,
     value_false: int = 0,
-    dtype: Union[str, np.dtype] = "bool",
+    dtype: str | np.dtype = "bool",
 ) -> np.ndarray:
     cond = _mk_ne_isin_condition(classes, "m", invert=invert)
     expr = f"where({cond}, {value_true}, {value_false})"
@@ -606,9 +606,7 @@ def gap_fill(x: xr.DataArray, fallback: xr.DataArray, nodata=None, attrs=None):
     return xr.DataArray(data, attrs=attrs, dims=x.dims, coords=x.coords, name=x.name)
 
 
-def _first_valid_np(
-    *aa: np.ndarray, nodata: Union[float, int, None] = None
-) -> np.ndarray:
+def _first_valid_np(*aa: np.ndarray, nodata: float | int | None = None) -> np.ndarray:
     out = aa[0].copy()
     if nodata is None:
         nodata = default_nodata(out.dtype)

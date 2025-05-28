@@ -5,11 +5,8 @@
 """Native load and masking."""
 
 import json
-from collections.abc import Iterable, Sequence
+from collections.abc import Callable, Iterable, Sequence
 from typing import (
-    Callable,
-    Optional,
-    Union,
     cast,
 )
 
@@ -26,7 +23,7 @@ from ._warp import xr_reproject
 
 
 def compute_native_load_geobox(
-    dst_geobox: GeoBox, ds: Dataset, band: str, buffer: Optional[float] = None
+    dst_geobox: GeoBox, ds: Dataset, band: str, buffer: float | None = None
 ) -> GeoBox:
     """
     Compute area of interest for a given Dataset given query.
@@ -59,8 +56,8 @@ def compute_native_load_geobox(
 def choose_transform_path(
     src_crs: str,
     dst_crs: str,
-    transform_code: Optional[str] = None,
-    area_of_interest: Optional[Sequence[float]] = None,
+    transform_code: str | None = None,
+    area_of_interest: Sequence[float] | None = None,
 ) -> str:
     # leave gdal to choose the best option if nothing is specified
     if transform_code is None and area_of_interest is None:
@@ -107,14 +104,14 @@ def _load_with_native_transform_1(
     bands: tuple[str, ...],
     geobox: GeoBox,
     native_transform: Callable[[xr.Dataset], xr.Dataset],
-    optional_bands: Optional[tuple[str, ...]] = None,
-    basis: Optional[str] = None,
-    groupby: Optional[str] = None,
-    fuser: Optional[Callable[[xr.Dataset], xr.Dataset]] = None,
+    optional_bands: tuple[str, ...] | None = None,
+    basis: str | None = None,
+    groupby: str | None = None,
+    fuser: Callable[[xr.Dataset], xr.Dataset] | None = None,
     resampling: str = "nearest",
-    chunks: Optional[dict[str, int]] = None,
-    load_chunks: Optional[dict[str, int]] = None,
-    pad: Optional[int] = None,
+    chunks: dict[str, int] | None = None,
+    load_chunks: dict[str, int] | None = None,
+    pad: int | None = None,
     **kwargs,
 ) -> xr.Dataset:
     if basis is None:
@@ -157,14 +154,14 @@ def load_with_native_transform(
     bands: Sequence[str],
     geobox: GeoBox,
     native_transform: Callable[[xr.Dataset], xr.Dataset],
-    optional_bands: Optional[tuple[str, ...]] = None,
-    basis: Optional[str] = None,
-    groupby: Optional[str] = None,
-    fuser: Optional[Callable[[xr.Dataset], xr.Dataset]] = None,
+    optional_bands: tuple[str, ...] | None = None,
+    basis: str | None = None,
+    groupby: str | None = None,
+    fuser: Callable[[xr.Dataset], xr.Dataset] | None = None,
     resampling: str = "nearest",
-    chunks: Optional[dict[str, int]] = None,
-    load_chunks: Optional[dict[str, int]] = None,
-    pad: Optional[int] = None,
+    chunks: dict[str, int] | None = None,
+    load_chunks: dict[str, int] | None = None,
+    pad: int | None = None,
     **kw,
 ) -> xr.Dataset:
     """
@@ -260,11 +257,11 @@ def load_enum_mask(
     dss: list[Dataset],
     band: str,
     geobox: GeoBox,
-    categories: Iterable[Union[str, int]],
+    categories: Iterable[str | int],
     invert: bool = False,
     resampling: str = "nearest",
-    groupby: Optional[str] = None,
-    chunks: Optional[dict[str, int]] = None,
+    groupby: str | None = None,
+    chunks: dict[str, int] | None = None,
     **kw,
 ) -> xr.DataArray:
     """
@@ -307,11 +304,11 @@ def load_enum_filtered(
     dss: Sequence[Dataset],
     band: str,
     geobox: GeoBox,
-    categories: Iterable[Union[str, int]],
-    filters: Optional[Iterable[tuple[str, int]]] = None,
-    groupby: Optional[str] = None,
+    categories: Iterable[str | int],
+    filters: Iterable[tuple[str, int]] | None = None,
+    groupby: str | None = None,
     resampling: str = "nearest",
-    chunks: Optional[dict[str, int]] = None,
+    chunks: dict[str, int] | None = None,
     **kw,
 ) -> xr.DataArray:
     """
@@ -377,7 +374,7 @@ def load_enum_filtered(
         return xx
 
     # unless set by user to some value use largest filter radius for pad value
-    pad: Optional[int] = kw.pop("pad", None)
+    pad: int | None = kw.pop("pad", None)
     if pad is None:
         if filters is not None:
             pad = max(list(zip(*filters))[1])  # type: ignore

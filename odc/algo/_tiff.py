@@ -6,7 +6,7 @@ import threading
 import warnings
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Optional, Union
+from typing import Any
 from uuid import uuid4
 
 import dask
@@ -43,7 +43,7 @@ class GeoRasterInfo:
     dtype: str
     crs: str
     transform: Affine
-    nodata: Optional[NodataType] = None
+    nodata: NodataType | None = None
     axis: int = 0
 
     def gdal_opts(self):
@@ -107,9 +107,9 @@ class TIFFSink:
     def __init__(
         self,
         info: GeoRasterInfo,
-        dst: Union[str, MemoryFile],
-        blocksize: Optional[int] = None,
-        bigtiff: Union[str, bool] = "auto",
+        dst: str | MemoryFile,
+        blocksize: int | None = None,
+        bigtiff: str | bool = "auto",
         lock: bool = True,
         **extra_rio_opts,
     ):
@@ -134,8 +134,8 @@ class TIFFSink:
         opts.update(info.gdal_opts())
         opts.update(extra_rio_opts)
 
-        mem: Optional[MemoryFile] = None
-        self._mem_mine: Optional[MemoryFile] = None
+        mem: MemoryFile | None = None
+        self._mem_mine: MemoryFile | None = None
 
         if isinstance(dst, str):
             if dst == ":mem:":
@@ -187,7 +187,7 @@ class TIFFSink:
         if ndim == 2:
             assert info.axis == 0
             assert item.ndim == 2
-            bands: Union[int, tuple[int, ...]] = 1
+            bands: int | tuple[int, ...] = 1
             block = item
         elif ndim == 3:
             if info.axis == 0:
@@ -224,13 +224,13 @@ class COGSink:
         self,
         info: GeoRasterInfo,
         dst: str,
-        blocksize: Optional[int] = None,
-        ovr_blocksize: Optional[int] = None,
-        bigtiff: Union[bool, str] = "auto",
+        blocksize: int | None = None,
+        ovr_blocksize: int | None = None,
+        bigtiff: bool | str = "auto",
         lock: bool = True,
-        temp_folder: Optional[str] = None,
+        temp_folder: str | None = None,
         overview_resampling: str = "average",
-        rio_opts_first_pass: Optional[dict[str, Any]] = None,
+        rio_opts_first_pass: dict[str, Any] | None = None,
         use_final_blocksizes: bool = False,
         **extra_rio_opts,
     ):
@@ -340,7 +340,7 @@ class COGSink:
         elif idx < len(self._layers):
             self._layers[idx].close()
 
-    def _copy_cog(self, extract=False, strict=False) -> Optional[bytes]:
+    def _copy_cog(self, extract=False, strict=False) -> bytes | None:
         with rasterio.Env(
             GDAL_TIFF_OVR_BLOCKSIZE=self._ovr_blocksize,
             GDAL_DISABLE_READDIR_ON_OPEN=False,
@@ -369,7 +369,7 @@ class COGSink:
                 )
             return None
 
-    def finalise(self, extract=False, strict=False) -> Optional[bytes]:
+    def finalise(self, extract=False, strict=False) -> bytes | None:
         self.close()  # Write out any remainders if needed
         return self._copy_cog(extract=extract, strict=strict)
 
@@ -433,15 +433,15 @@ class COGSink:
 def save_cog(
     xx: xr.DataArray,
     dst: str,
-    blocksize: Optional[int] = None,
-    ovr_blocksize: Optional[int] = None,
-    bigtiff: Union[bool, str] = "auto",
-    temp_folder: Optional[str] = None,
+    blocksize: int | None = None,
+    ovr_blocksize: int | None = None,
+    bigtiff: bool | str = "auto",
+    temp_folder: str | None = None,
     overview_resampling: str = "average",
-    rio_opts_first_pass: Optional[dict[str, Any]] = None,
+    rio_opts_first_pass: dict[str, Any] | None = None,
     use_final_blocksizes: bool = False,
-    ACL: Optional[str] = None,
-    creds: Optional[Any] = None,
+    ACL: str | None = None,
+    creds: Any | None = None,
     **extra_rio_opts,
 ):
     """
@@ -502,7 +502,7 @@ def save_cog(
     if yx_chunks != (2048, 2048):
         data = data.rechunk(chunks[:axis] + (2048, 2048) + chunks[axis + 2 :])
 
-    s3_url: Optional[str] = None
+    s3_url: str | None = None
     extract = False
     if dst == ":mem:":
         extract = True

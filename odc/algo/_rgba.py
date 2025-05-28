@@ -4,8 +4,6 @@
 # SPDX-License-Identifier: Apache-2.0
 """Helpers for dealing with RGB(A) images."""
 
-from typing import Optional, Union
-
 import dask
 import dask.array as da
 import numpy as np
@@ -59,7 +57,7 @@ def to_rgba_np(
     r: np.ndarray,
     g: np.ndarray,
     b: np.ndarray,
-    nodata: Optional[float],
+    nodata: float | None,
     clamp: tuple[float, float],
 ) -> np.ndarray:
     rgba = np.zeros((*r.shape, 4), dtype="uint8")
@@ -82,8 +80,8 @@ def to_rgba_np(
 
 def to_rgba(
     ds: xr.Dataset,
-    clamp: Optional[Union[float, tuple[float, float]]] = None,
-    bands: Optional[tuple[str, str, str]] = None,
+    clamp: float | tuple[float, float] | None = None,
+    bands: tuple[str, str, str] | None = None,
 ) -> xr.DataArray:
     """Given `xr.Dataset` with bands `red,green,blue` construct `xr.Datarray`
         containing uint8 rgba image.

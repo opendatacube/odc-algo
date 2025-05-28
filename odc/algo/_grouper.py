@@ -6,7 +6,7 @@
 
 from collections.abc import Hashable, Iterable, Iterator
 from datetime import timedelta
-from typing import Any, Optional
+from typing import Any
 
 import numpy as np
 import pandas as pd
@@ -39,7 +39,7 @@ def solar_offset(geom: Geometry, precision: str = "h") -> timedelta:
 
 
 def key2num(
-    objs: Iterable[Hashable], reverse_map: Optional[dict[int, Any]] = None
+    objs: Iterable[Hashable], reverse_map: dict[int, Any] | None = None
 ) -> Iterator[int]:
     """
     Given a sequence of hashable objects return sequence of numeric ids starting from 0.
@@ -58,7 +58,7 @@ def key2num(
 
 
 def group_by_nothing(
-    dss: list[Dataset], solar_day_offset: Optional[timedelta] = None
+    dss: list[Dataset], solar_day_offset: timedelta | None = None
 ) -> xr.DataArray:
     """
     No op grouping of datasets.

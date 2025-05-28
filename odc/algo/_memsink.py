@@ -4,7 +4,7 @@
 # SPDX-License-Identifier: Apache-2.0
 import uuid
 from collections.abc import Hashable
-from typing import Any, Optional, Union
+from typing import Any
 
 import dask
 import dask.array as da
@@ -17,11 +17,11 @@ from distributed import Client
 
 from ._dask import _roi_from_chunks, unpack_chunks
 
-ShapeLike = Union[int, tuple[int, ...]]
-DtypeLike = Union[str, np.dtype]
-ROI = Union[slice, tuple[slice, ...]]
-MaybeROI = Optional[ROI]
-CacheKey = Union["Token", str]
+ShapeLike = int | tuple[int, ...]
+DtypeLike = str | np.dtype
+ROI = slice | tuple[slice, ...]
+MaybeROI = ROI | None
+CacheKey = "Token" | str
 
 _cache: dict[str, np.ndarray] = {}
 
@@ -78,11 +78,11 @@ class Cache:
         return Token(k)
 
     @staticmethod
-    def get(k: CacheKey) -> Optional[np.ndarray]:
+    def get(k: CacheKey) -> np.ndarray | None:
         return _cache.get(str(k), None)
 
     @staticmethod
-    def pop(k: CacheKey) -> Optional[np.ndarray]:
+    def pop(k: CacheKey) -> np.ndarray | None:
         return _cache.pop(str(k), None)
 
 
@@ -123,7 +123,7 @@ class CachedArray:
     def wrap(x: np.ndarray) -> "CachedArray":
         return CachedArray(Cache.put(x))
 
-    def release(self) -> Optional[np.ndarray]:
+    def release(self) -> np.ndarray | None:
         return Cache.pop(self._tk)
 
 
@@ -131,7 +131,7 @@ class _YXBTSink:
     def __init__(
         self,
         token_or_key: CacheKey,
-        band: Union[int, tuple[slice, slice, slice, slice]],
+        band: int | tuple[slice, slice, slice, slice],
     ):
         if isinstance(band, int):
             band = np.s_[:, :, band, :]
@@ -174,7 +174,7 @@ class _YXTSink:
 
 
 def store_to_mem(
-    xx: da.Array, client: Client, out: Optional[np.ndarray] = None
+    xx: da.Array, client: Client, out: np.ndarray | None = None
 ) -> np.ndarray:
     assert client.scheduler.address.startswith("inproc://")
     token = None

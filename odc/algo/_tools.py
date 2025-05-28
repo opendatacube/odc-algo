@@ -2,17 +2,13 @@
 #
 # Copyright (c) 2015-2025 ODC Contributors
 # SPDX-License-Identifier: Apache-2.0
-"""
-Various utilities
-"""
+"""Various utilities."""
 
-from typing import Optional, Union
-
-ROI = Union[slice, tuple[slice, ...]]
+ROI = slice | tuple[slice, ...]
 
 
 def slice_in_out(s: slice, n: int) -> tuple[int, int]:
-    def fill_if_none(x: Optional[int], val_if_none: int) -> int:
+    def fill_if_none(x: int | None, val_if_none: int) -> int:
         return val_if_none if x is None else x
 
     start = fill_if_none(s.start, 0)
@@ -21,9 +17,7 @@ def slice_in_out(s: slice, n: int) -> tuple[int, int]:
     return (start, stop)
 
 
-def roi_shape(
-    roi: ROI, shape: Optional[Union[int, tuple[int, ...]]] = None
-) -> tuple[int, ...]:
+def roi_shape(roi: ROI, shape: int | tuple[int, ...] | None = None) -> tuple[int, ...]:
     if isinstance(shape, int):
         shape = (shape,)
 

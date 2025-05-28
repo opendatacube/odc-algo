@@ -6,8 +6,6 @@
 Misc numeric tooling
 """
 
-from typing import Optional
-
 import numpy as np
 
 from ._types import NumpyIndex, NumpyIndex1
@@ -55,7 +53,7 @@ def roi_shrink2(idx: NumpyIndex, axis: int = 0) -> NumpyIndex:
     :param axis: Index of the Y axis, assumed to be 0 if not supplied. For example for (B, Y, X) supply axis=1.
     """
 
-    def maybe_half(x: Optional[int]) -> Optional[int]:
+    def maybe_half(x: int | None) -> int | None:
         if x is None:
             return None
         return half_up(x)

@@ -5,7 +5,6 @@
 """Helper methods for Geometric Median computation."""
 
 import functools
-from typing import Optional, Union
 
 import dask
 import dask.array as da
@@ -340,14 +339,14 @@ def _gm_mads_compute_f32(
 
 
 def geomedian_with_mads(
-    src: Union[xr.Dataset, xr.DataArray],
+    src: xr.Dataset | xr.DataArray,
     compute_mads: bool = True,
     compute_count: bool = True,
-    out_chunks: Optional[tuple[int, int, int]] = None,
+    out_chunks: tuple[int, int, int] | None = None,
     reshape_strategy: str = "mem",
     scale: float = 1.0,
     offset: float = 0.0,
-    eps: Optional[float] = None,
+    eps: float | None = None,
     maxiters: int = 1000,
     num_threads: int = 1,
     **kw,

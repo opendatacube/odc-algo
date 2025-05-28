@@ -3,7 +3,7 @@
 # Copyright (c) 2015-2025 ODC Contributors
 # SPDX-License-Identifier: Apache-2.0
 import functools
-from typing import Any, Optional
+from typing import Any
 
 import dask
 import dask.array as da
@@ -16,9 +16,9 @@ from ._dask import flatten_kv, randomize, unflatten_kv
 
 def apply_numexpr_np(
     expr: str,
-    data: Optional[dict[str, Any]] = None,
+    data: dict[str, Any] | None = None,
     dtype=None,
-    out: Optional[np.ndarray] = None,
+    out: np.ndarray | None = None,
     casting="safe",
     order="K",
     **params,

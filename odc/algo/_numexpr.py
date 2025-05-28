@@ -2,20 +2,21 @@
 #
 # Copyright (c) 2015-2025 ODC Contributors
 # SPDX-License-Identifier: Apache-2.0
+import functools
+from typing import Any, Optional
+
 import dask
 import dask.array as da
-import functools
 import numexpr as ne
 import numpy as np
 import xarray as xr
-from typing import Any, Dict, Optional
 
 from ._dask import flatten_kv, randomize, unflatten_kv
 
 
 def apply_numexpr_np(
     expr: str,
-    data: Optional[Dict[str, Any]] = None,
+    data: Optional[dict[str, Any]] = None,
     dtype=None,
     out: Optional[np.ndarray] = None,
     casting="safe",
@@ -148,7 +149,7 @@ def safe_div(x1: xr.DataArray, x2: xr.DataArray, dtype="float32") -> xr.DataArra
     # TODO: support nodata on input
     return apply_numexpr(
         "where(x2 == 0, nan, (_1f * x1) / x2)",
-        xr.Dataset(dict(x1=x1, x2=x2)),
+        xr.Dataset({"x1": x1, "x2": x2}),
         dtype=dtype,
         nan=dtype.type("nan"),
         _1f=dtype.type(1),

@@ -6,6 +6,7 @@ import dask
 import dask.array as da
 import numpy as np
 import xarray as xr
+
 from odc.algo._memsink import (
     Cache,
     CachedArray,

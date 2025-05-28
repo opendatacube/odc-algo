@@ -2,23 +2,24 @@
 #
 # Copyright (c) 2015-2025 ODC Contributors
 # SPDX-License-Identifier: Apache-2.0
+import threading
+import warnings
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Any, Optional, Union
+from uuid import uuid4
+
 import dask
 import dask.array as da
 import numpy as np
 import rasterio
-import threading
-import warnings
 import xarray as xr
 from affine import Affine
 from dask.base import tokenize
 from dask.delayed import Delayed
-from dataclasses import dataclass
-from pathlib import Path
 from rasterio import MemoryFile
 from rasterio.shutil import copy as rio_copy
 from rasterio.windows import Window
-from typing import Any, Dict, Optional, Tuple, Union
-from uuid import uuid4
 
 from ._numeric import half_up, np_slice_to_idx, roi_shrink2, roundup16
 from ._types import NodataType, NumpyIndex
@@ -119,17 +120,17 @@ class TIFFSink:
             # do bigtiff if raw raster is larger than 4GB
             bigtiff = info.raster_size() > (1 << 32)
 
-        opts = dict(
-            driver="GTiff",
-            bigtiff=bigtiff,
-            tiled=True,
-            blockxsize=_adjust_blocksize(blocksize, info.width),
-            blockysize=_adjust_blocksize(blocksize, info.height),
-            compress="DEFLATE",
-            zlevel=6,
-            predictor=2,
-            num_threads="ALL_CPUS",
-        )
+        opts = {
+            "driver": "GTiff",
+            "bigtiff": bigtiff,
+            "tiled": True,
+            "blockxsize": _adjust_blocksize(blocksize, info.width),
+            "blockysize": _adjust_blocksize(blocksize, info.height),
+            "compress": "DEFLATE",
+            "zlevel": 6,
+            "predictor": 2,
+            "num_threads": "ALL_CPUS",
+        }
         opts.update(info.gdal_opts())
         opts.update(extra_rio_opts)
 
@@ -186,7 +187,7 @@ class TIFFSink:
         if ndim == 2:
             assert info.axis == 0
             assert item.ndim == 2
-            bands: Union[int, Tuple[int, ...]] = 1
+            bands: Union[int, tuple[int, ...]] = 1
             block = item
         elif ndim == 3:
             if info.axis == 0:
@@ -229,7 +230,7 @@ class COGSink:
         lock: bool = True,
         temp_folder: Optional[str] = None,
         overview_resampling: str = "average",
-        rio_opts_first_pass: Optional[Dict[str, Any]] = None,
+        rio_opts_first_pass: Optional[dict[str, Any]] = None,
         use_final_blocksizes: bool = False,
         **extra_rio_opts,
     ):
@@ -243,28 +244,28 @@ class COGSink:
             # do bigtiff if raw raster is larger than 4GB
             bigtiff = info.raster_size() > (1 << 32)
 
-        opts = dict(
-            driver="GTiff",
-            bigtiff=bigtiff,
-            tiled=True,
-            blockxsize=_adjust_blocksize(blocksize, info.width),
-            blockysize=_adjust_blocksize(blocksize, info.height),
-            compress="DEFLATE",
-            zlevel=6,
-            predictor=2,
-            num_threads="ALL_CPUS",
-        )
+        opts = {
+            "driver": "GTiff",
+            "bigtiff": bigtiff,
+            "tiled": True,
+            "blockxsize": _adjust_blocksize(blocksize, info.width),
+            "blockysize": _adjust_blocksize(blocksize, info.height),
+            "compress": "DEFLATE",
+            "zlevel": 6,
+            "predictor": 2,
+            "num_threads": "ALL_CPUS",
+        }
         opts.update(extra_rio_opts)
 
         if rio_opts_first_pass is None:
-            rio_opts_first_pass = dict(
-                compress="zstd",
-                zstd_level=1,
-                predictor=1,
-                num_threads="ALL_CPUS",
-                sparse_ok=True,
-                interleave=opts.get("interleave", "pixel"),
-            )
+            rio_opts_first_pass = {
+                "compress": "zstd",
+                "zstd_level": 1,
+                "predictor": 1,
+                "num_threads": "ALL_CPUS",
+                "sparse_ok": True,
+                "interleave": opts.get("interleave", "pixel"),
+            }
 
         layers = []
         temp = str(uuid4())
@@ -378,6 +379,7 @@ class COGSink:
     def dump_to_s3(self, url, creds=None, **kw):
         import boto3
         from boto3.s3.transfer import TransferConfig
+
         from odc.aws import s3_url_parse
 
         assert self._mem is not None
@@ -388,11 +390,11 @@ class COGSink:
         creds_opts = (
             {}
             if creds is None
-            else dict(
-                aws_access_key_id=creds.access_key,
-                aws_secret_access_key=creds.secret_key,
-                aws_session_token=creds.token,
-            )
+            else {
+                "aws_access_key_id": creds.access_key,
+                "aws_secret_access_key": creds.secret_key,
+                "aws_session_token": creds.token,
+            }
         )
         s3 = boto3.client("s3", **creds_opts)
 
@@ -436,7 +438,7 @@ def save_cog(
     bigtiff: Union[bool, str] = "auto",
     temp_folder: Optional[str] = None,
     overview_resampling: str = "average",
-    rio_opts_first_pass: Optional[Dict[str, Any]] = None,
+    rio_opts_first_pass: Optional[dict[str, Any]] = None,
     use_final_blocksizes: bool = False,
     ACL: Optional[str] = None,
     creds: Optional[Any] = None,
@@ -560,7 +562,7 @@ def save_cog(
     cog_finish = Delayed(name, dsk)
 
     if s3_url is not None:
-        s3_opts = dict(ContentType="image/tiff")
+        s3_opts = {"ContentType": "image/tiff"}
         if ACL is not None:
             s3_opts["ACL"] = ACL
         if creds is not None:

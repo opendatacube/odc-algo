@@ -4,12 +4,13 @@
 # SPDX-License-Identifier: Apache-2.0
 """Helper methods for Geometric Median computation."""
 
+import functools
+from typing import Optional, Union
+
 import dask
 import dask.array as da
-import functools
 import numpy as np
 import xarray as xr
-from typing import Optional, Tuple, Union
 
 from ._dask import randomize, reshape_yxbt
 from ._masking import from_float_np, to_float_np
@@ -19,7 +20,7 @@ from ._memsink import yxbt_sink
 
 
 def reshape_for_geomedian(ds, axis="time"):
-    dims = set(v.dims for v in ds.data_vars.values())
+    dims = {v.dims for v in ds.data_vars.values()}
     if len(dims) != 1:
         raise ValueError("All bands should have same dimensions")
 
@@ -32,7 +33,7 @@ def reshape_for_geomedian(ds, axis="time"):
 
     dims = tuple(d for d in dims if d != axis) + ("band", axis)
 
-    nodata = set(getattr(v, "nodata", None) for v in ds.data_vars.values())
+    nodata = {getattr(v, "nodata", None) for v in ds.data_vars.values()}
     if len(nodata) == 1:
         nodata = nodata.pop()
     else:
@@ -308,7 +309,7 @@ def _gm_mads_compute_f32(
     if compute_mads:
         mads = [hdstats.smad_pcm, hdstats.emad_pcm, hdstats.bcmad_pcm]
 
-        for i, op in enumerate(mads):
+        for op in mads:
             stats_bands.append(op(tmp_input, gm, num_threads=kw.get("num_threads", 1)))
             if abs(scale - 1) >= 1e-10 and op == hdstats.emad_pcm:
                 stats_bands[-1] *= 1 / scale
@@ -342,7 +343,7 @@ def geomedian_with_mads(
     src: Union[xr.Dataset, xr.DataArray],
     compute_mads: bool = True,
     compute_count: bool = True,
-    out_chunks: Optional[Tuple[int, int, int]] = None,
+    out_chunks: Optional[tuple[int, int, int]] = None,
     reshape_strategy: str = "mem",
     scale: float = 1.0,
     offset: float = 0.0,

@@ -5,12 +5,13 @@
 """
 Various utilities
 """
-from typing import Optional, Tuple, Union
 
-ROI = Union[slice, Tuple[slice, ...]]
+from typing import Optional, Union
+
+ROI = Union[slice, tuple[slice, ...]]
 
 
-def slice_in_out(s: slice, n: int) -> Tuple[int, int]:
+def slice_in_out(s: slice, n: int) -> tuple[int, int]:
     def fill_if_none(x: Optional[int], val_if_none: int) -> int:
         return val_if_none if x is None else x
 
@@ -21,8 +22,8 @@ def slice_in_out(s: slice, n: int) -> Tuple[int, int]:
 
 
 def roi_shape(
-    roi: ROI, shape: Optional[Union[int, Tuple[int, ...]]] = None
-) -> Tuple[int, ...]:
+    roi: ROI, shape: Optional[Union[int, tuple[int, ...]]] = None
+) -> tuple[int, ...]:
     if isinstance(shape, int):
         shape = (shape,)
 

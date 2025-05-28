@@ -5,6 +5,9 @@
 """
 Dask aware reproject implementation
 """
+
+from typing import Any, Optional, Union
+
 import dask.array as da
 import dask.utils as du
 import numpy as np
@@ -12,8 +15,6 @@ import xarray as xr
 from affine import Affine
 from dask import is_dask_collection
 from dask.highlevelgraph import HighLevelGraph
-from typing import Any, Dict, Optional, Tuple, Union
-
 from datacube.utils import spatial_dims
 from datacube.utils.geometry import (
     GeoBox,
@@ -22,6 +23,7 @@ from datacube.utils.geometry import (
     warp_affine,
 )
 from datacube.utils.geometry.gbox import GeoboxTiles
+
 from ._dask import crop_2d_dense, empty_maker, randomize, unpack_chunks
 from ._numeric import shape_shrink2
 from ._types import NodataType
@@ -97,7 +99,7 @@ def dask_reproject(
     src_geobox: GeoBox,
     dst_geobox: GeoBox,
     resampling: str = "nearest",
-    chunks: Optional[Tuple[int, int]] = None,
+    chunks: Optional[tuple[int, int]] = None,
     src_nodata: Optional[NodataType] = None,
     dst_nodata: Optional[NodataType] = None,
     axis: int = 0,
@@ -143,7 +145,7 @@ def dask_reproject(
     xy_chunks_with_data = list(gbt.tiles(src_geobox.extent))
 
     name = randomize(name)
-    dsk: Dict[Any, Any] = {}
+    dsk: dict[Any, Any] = {}
 
     block_impl = (
         _reproject_block_bool_impl if src.dtype == "bool" else _reproject_block_impl
@@ -195,7 +197,7 @@ def xr_reproject_array(
     src: xr.DataArray,
     geobox: GeoBox,
     resampling: str = "nearest",
-    chunks: Optional[Tuple[int, int]] = None,
+    chunks: Optional[tuple[int, int]] = None,
     dst_nodata: Optional[NodataType] = None,
     **kwargs,
 ) -> xr.DataArray:
@@ -267,7 +269,7 @@ def xr_reproject(
     src: Union[xr.DataArray, xr.Dataset],
     geobox: GeoBox,
     resampling: str = "nearest",
-    chunks: Optional[Tuple[int, int]] = None,
+    chunks: Optional[tuple[int, int]] = None,
     dst_nodata: Optional[NodataType] = None,
     **kwargs,
 ) -> Union[xr.DataArray, xr.Dataset]:

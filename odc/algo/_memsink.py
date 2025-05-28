@@ -2,26 +2,28 @@
 #
 # Copyright (c) 2015-2025 ODC Contributors
 # SPDX-License-Identifier: Apache-2.0
+import uuid
+from collections.abc import Hashable
+from typing import Any, Optional, Union
+
 import dask
 import dask.array as da
 import numpy as np
-import uuid
 import xarray as xr
 from dask.base import tokenize
 from dask.delayed import Delayed
 from dask.highlevelgraph import HighLevelGraph
 from distributed import Client
-from typing import Any, Dict, Hashable, Optional, Tuple, Union
 
 from ._dask import _roi_from_chunks, unpack_chunks
 
-ShapeLike = Union[int, Tuple[int, ...]]
+ShapeLike = Union[int, tuple[int, ...]]
 DtypeLike = Union[str, np.dtype]
-ROI = Union[slice, Tuple[slice, ...]]
+ROI = Union[slice, tuple[slice, ...]]
 MaybeROI = Optional[ROI]
 CacheKey = Union["Token", str]
 
-_cache: Dict[str, np.ndarray] = {}
+_cache: dict[str, np.ndarray] = {}
 
 
 class Token:
@@ -63,7 +65,7 @@ class Cache:
     @staticmethod
     def dask_new(shape: ShapeLike, dtype: DtypeLike, name: str = "") -> Delayed:
         if name == "":
-            name = f"mem_array_{str(dtype)}"
+            name = f"mem_array_{dtype!s}"
 
         name = name + "-" + tokenize(name, shape, dtype)
         dsk = {name: (Cache.new, shape, dtype)}
@@ -96,7 +98,7 @@ class CachedArray:
         return xx
 
     @property
-    def shape(self) -> Tuple[int, ...]:
+    def shape(self) -> tuple[int, ...]:
         return self.data.shape
 
     @property
@@ -129,7 +131,7 @@ class _YXBTSink:
     def __init__(
         self,
         token_or_key: CacheKey,
-        band: Union[int, Tuple[slice, slice, slice, slice]],
+        band: Union[int, tuple[slice, slice, slice, slice]],
     ):
         if isinstance(band, int):
             band = np.s_[:, :, band, :]
@@ -193,7 +195,7 @@ def store_to_mem(
             token.release()
 
 
-def yxbt_sink_to_mem(bands: Tuple[da.Array, ...], client: Client) -> np.ndarray:
+def yxbt_sink_to_mem(bands: tuple[da.Array, ...], client: Client) -> np.ndarray:
     assert client.scheduler.address.startswith("inproc://")
 
     b = bands[0]
@@ -221,7 +223,7 @@ def _da_from_mem(
     token: Delayed,
     shape: ShapeLike,
     dtype: DtypeLike,
-    chunks: Tuple[int, ...],
+    chunks: tuple[int, ...],
     name: str = "from_mem",
 ) -> da.Array:
     """
@@ -235,7 +237,7 @@ def _da_from_mem(
 
     :param dtype: Expected dtype of the future array
 
-    :param chunks: Tuple of integers describing chunk partitioning for output array
+    :param chunks: tuple of integers describing chunk partitioning for output array
 
     :param name: Dask name
 
@@ -283,7 +285,7 @@ def _da_from_mem(
     return da.Array(dsk, name, shape=shape, dtype=dtype, chunks=_chunks)
 
 
-def da_mem_sink(xx: da.Array, chunks: Tuple[int, ...], name="memsink") -> da.Array:
+def da_mem_sink(xx: da.Array, chunks: tuple[int, ...], name="memsink") -> da.Array:
     """
     It's a kind of fancy rechunk for special needs.
 
@@ -322,7 +324,7 @@ def da_mem_sink(xx: da.Array, chunks: Tuple[int, ...], name="memsink") -> da.Arr
     )
 
 
-def da_yxt_sink(band: da.Array, chunks: Tuple[int, int, int], name="yxt") -> da.Array:
+def da_yxt_sink(band: da.Array, chunks: tuple[int, int, int], name="yxt") -> da.Array:
     """
     band is in <t,y,x>
     output is <y,x,t>
@@ -349,7 +351,7 @@ def da_yxt_sink(band: da.Array, chunks: Tuple[int, int, int], name="yxt") -> da.
 
 
 def da_yxbt_sink(
-    bands: Tuple[da.Array, ...], chunks: Tuple[int, ...], dtype=None, name="yxbt"
+    bands: tuple[da.Array, ...], chunks: tuple[int, ...], dtype=None, name="yxbt"
 ) -> da.Array:
     """
     each band is in <t,y,x>
@@ -380,7 +382,7 @@ def da_yxbt_sink(
 
 
 def yxbt_sink(
-    ds: xr.Dataset, chunks: Tuple[int, int, int, int], dtype=None, name="yxbt"
+    ds: xr.Dataset, chunks: tuple[int, int, int, int], dtype=None, name="yxbt"
 ) -> xr.DataArray:
     """
     Given a Dask dataset with several bands and ``T,Y,X`` axis order on input,
@@ -419,14 +421,14 @@ def yxbt_sink(
     attrs = dict(b0.attrs)
     dims = b0.dims[1:] + ("band", b0.dims[0])
 
-    coords: Dict[Hashable, Any] = dict(ds.coords.items())
+    coords: dict[Hashable, Any] = dict(ds.coords.items())
     coords["band"] = list(ds.data_vars)
 
     return xr.DataArray(data=data, dims=dims, coords=coords, attrs=attrs)
 
 
 def yxt_sink(
-    band: xr.DataArray, chunks: Tuple[int, int, int], name="yxt"
+    band: xr.DataArray, chunks: tuple[int, int, int], name="yxt"
 ) -> xr.DataArray:
     """
     Load ``T,Y,X` dataset into RAM with transpose to ``Y,X,T``, then present

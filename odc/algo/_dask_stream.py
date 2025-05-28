@@ -1,6 +1,10 @@
-""" Dask Distributed Tools
+# This file is part of the Open Data Cube, see https://opendatacube.org for more information
+#
+# Copyright (c) 2015-2025 ODC Contributors
+# SPDX-License-Identifier: Apache-2.0
+"""Dask Distributed Tools
 
-   - dask_compute_stream
+- dask_compute_stream
 """
 import dask.bag
 import queue

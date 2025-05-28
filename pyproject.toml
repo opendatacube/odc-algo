@@ -42,6 +42,7 @@ s3 = [
 dev = [
     "pdbpp>=0.11.6",
     'pytest',
+    "pytest-cov>=6.1.1",
     'ruff',
 ]
 

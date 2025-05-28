@@ -2,13 +2,16 @@
 #
 # Copyright (c) 2015-2025 ODC Contributors
 # SPDX-License-Identifier: Apache-2.0
-"""
-Misc numeric tooling
-"""
+"""Misc numeric tooling."""
+
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
 
 import numpy as np
 
-from ._types import NumpyIndex, NumpyIndex1
+if TYPE_CHECKING:
+    from ._types import NumpyIndex, NumpyIndex1
 
 
 def half_up(n: int) -> int:

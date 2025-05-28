@@ -2,18 +2,18 @@
 #
 # Copyright (c) 2015-2025 ODC Contributors
 # SPDX-License-Identifier: Apache-2.0
-"""
-Dask aware reproject implementation
-"""
+"""Dask aware reproject implementation."""
 
-from typing import Any
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, Any
 
 import dask.array as da
 import dask.utils as du
 import numpy as np
 import xarray as xr
 from affine import Affine
-from dask import is_dask_collection
+from dask.base import is_dask_collection
 from dask.highlevelgraph import HighLevelGraph
 from datacube.utils import spatial_dims
 from datacube.utils.geometry import (
@@ -26,7 +26,9 @@ from datacube.utils.geometry.gbox import GeoboxTiles
 
 from ._dask import crop_2d_dense, empty_maker, randomize, unpack_chunks
 from ._numeric import shape_shrink2
-from ._types import NodataType
+
+if TYPE_CHECKING:
+    from ._types import NodataType
 
 
 def _reproject_block_impl(

@@ -2,27 +2,34 @@
 #
 # Copyright (c) 2015-2025 ODC Contributors
 # SPDX-License-Identifier: Apache-2.0
-"""Dask Distributed Tools
+"""Dask Distributed Tools.
 
 - dask_compute_stream
 """
 
+from __future__ import annotations
+
 import queue
 import threading
-from collections.abc import Iterable
 from random import randint
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import dask.bag
 import toolz
-from dask.distributed import Client
+
+if TYPE_CHECKING:
+    from collections.abc import Generator, Iterable
+
+    from dask.distributed import Client
 
 
-def _randomize(prefix):
+def _randomize(prefix: str) -> str:
     return f"{prefix}-{randint(0, 0xFFFFFFFF):08x}"
 
 
-def seq_to_bags(its: Iterable[Any], chunk_sz: int, name: str = "data"):
+def seq_to_bags(
+    its: Iterable[Any], chunk_sz: int, name: str = "data"
+) -> Generator[dask.bag.Bag]:
     """Take a stream of data items and return a stream of dask.bag.Bag
     each bag (except last) containing ``chunk_sz`` elements in 1 partition.
     """

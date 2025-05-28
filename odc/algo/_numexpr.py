@@ -2,6 +2,8 @@
 #
 # Copyright (c) 2015-2025 ODC Contributors
 # SPDX-License-Identifier: Apache-2.0
+from __future__ import annotations
+
 import functools
 from typing import Any
 
@@ -23,10 +25,7 @@ def apply_numexpr_np(
     order="K",
     **params,
 ) -> np.ndarray:
-    """
-    Apply numexpr to numpy arrays
-    """
-
+    """Apply numexpr to numpy arrays"""
     if data is None:
         data = params
     else:
@@ -53,8 +52,7 @@ def apply_numexpr(
     order="K",
     **params,
 ):
-    """
-    Apply numexpr to variables within a Dataset.
+    """Apply numexpr to variables within a Dataset.
 
     numexpr library offers a limited subset of types and operations supported
     by numpy, but is much faster and memory efficient, particularly for complex
@@ -86,8 +84,8 @@ def apply_numexpr(
                             _1f=np.float32(1)  # Define constant `_1f` being a float32(1),
                                                # used for casting to float32
                            )
-    """
 
+    """
     bands = {}
     sample_band = None
 
@@ -132,8 +130,7 @@ def apply_numexpr(
 
 
 def safe_div(x1: xr.DataArray, x2: xr.DataArray, dtype="float32") -> xr.DataArray:
-    """
-    Compute ``x1.astype(dtype)/x2.astype(dtype)`` taking care of cases where x2==0.
+    """Compute ``x1.astype(dtype)/x2.astype(dtype)`` taking care of cases where x2==0.
 
     For every element compute the following:
 

@@ -4,16 +4,21 @@
 # SPDX-License-Identifier: Apache-2.0
 """Methods for grouping Datasets spatialy and otherwise."""
 
-from collections.abc import Hashable, Iterable, Iterator
+from __future__ import annotations
+
 from datetime import timedelta
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import numpy as np
 import pandas as pd
 import xarray as xr
 from datacube.model import Dataset
 from datacube.utils.dates import normalise_dt
-from datacube.utils.geometry import Geometry
+
+if TYPE_CHECKING:
+    from collections.abc import Hashable, Iterable, Iterator
+
+    from datacube.utils.geometry import Geometry
 
 
 def mid_longitude(geom: Geometry) -> float:
@@ -23,8 +28,7 @@ def mid_longitude(geom: Geometry) -> float:
 
 
 def solar_offset(geom: Geometry, precision: str = "h") -> timedelta:
-    """
-    Given a geometry compute offset to add to UTC timestamp to get solar day right.
+    """Given a geometry compute offset to add to UTC timestamp to get solar day right.
 
     This only work when geometry is "local enough".
     :param precision: one of ``'h'`` or ``'s'``, defaults to hour precision
@@ -41,8 +45,7 @@ def solar_offset(geom: Geometry, precision: str = "h") -> timedelta:
 def key2num(
     objs: Iterable[Hashable], reverse_map: dict[int, Any] | None = None
 ) -> Iterator[int]:
-    """
-    Given a sequence of hashable objects return sequence of numeric ids starting from 0.
+    """Given a sequence of hashable objects return sequence of numeric ids starting from 0.
 
     For example ``'A' 'B' 'A' 'A' 'C' -> 0 1 0 0 2``
     """
@@ -60,8 +63,7 @@ def key2num(
 def group_by_nothing(
     dss: list[Dataset], solar_day_offset: timedelta | None = None
 ) -> xr.DataArray:
-    """
-    No op grouping of datasets.
+    """No op grouping of datasets.
 
     Construct "sources" just like ``.group_dataset`` but with every slice
     containing just one Dataset object wrapped in a tuple.

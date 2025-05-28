@@ -4,15 +4,16 @@
 # SPDX-License-Identifier: Apache-2.0
 """Native load and masking."""
 
+from __future__ import annotations
+
 import json
-from collections.abc import Callable, Iterable, Sequence
 from typing import (
+    TYPE_CHECKING,
     cast,
 )
 
 import xarray as xr
 from datacube import Datacube
-from datacube.model import Dataset
 from datacube.testutils.io import native_geobox
 from datacube.utils.geometry import GeoBox, gbox
 from pyproj import aoi, transformer
@@ -21,12 +22,16 @@ from ._grouper import group_by_nothing, solar_offset
 from ._masking import _max_fuser, _nodata_fuser, _or_fuser, enum_to_bool, mask_cleanup
 from ._warp import xr_reproject
 
+if TYPE_CHECKING:
+    from collections.abc import Callable, Iterable, Sequence
+
+    from datacube.model import Dataset
+
 
 def compute_native_load_geobox(
     dst_geobox: GeoBox, ds: Dataset, band: str, buffer: float | None = None
 ) -> GeoBox:
-    """
-    Compute area of interest for a given Dataset given query.
+    """Compute area of interest for a given Dataset given query.
 
     Take native projection and resolution from ``ds, band`` pair and compute
     region in that projection that fully encloses footprint of the
@@ -42,7 +47,7 @@ def compute_native_load_geobox(
     """
     native: GeoBox = native_geobox(ds, basis=band)
     if buffer is None:
-        buffer = 10 * cast(float, max(map(abs, native.resolution)))  # type: ignore
+        buffer = 10 * cast("float", max(map(abs, native.resolution)))  # type: ignore
 
     assert native.crs is not None
     return GeoBox.from_geopolygon(
@@ -72,17 +77,16 @@ def choose_transform_path(
     )
     if transform_code is None:
         return {"COORDINATE_OPERATION": transformer_group.transformers[0].to_proj4()}
-    else:
-        for t in transformer_group.transformers:
-            for step in json.loads(t.to_json()).get("steps", []):
-                if step.get("type", "") == "Transformation":
-                    authority_code = step.get("id", {})
-                    if transform_code.split(":")[0].upper() in authority_code.get(
-                        "authority", ""
-                    ) and transform_code.split(":")[1] == str(
-                        authority_code.get("code", "")
-                    ):
-                        return {"COORDINATE_OPERATION": t.to_proj4()}
+    for t in transformer_group.transformers:
+        for step in json.loads(t.to_json()).get("steps", []):
+            if step.get("type", "") == "Transformation":
+                authority_code = step.get("id", {})
+                if transform_code.split(":")[0].upper() in authority_code.get(
+                    "authority", ""
+                ) and transform_code.split(":")[1] == str(
+                    authority_code.get("code", "")
+                ):
+                    return {"COORDINATE_OPERATION": t.to_proj4()}
     # raise error if nothing is available
     raise ValueError(f"Not able to find transform path by {transform_code}")
 
@@ -164,8 +168,7 @@ def load_with_native_transform(
     pad: int | None = None,
     **kw,
 ) -> xr.Dataset:
-    """
-    Load a bunch of datasets with native pixel transform.
+    """Load a bunch of datasets with native pixel transform.
 
     :param dss: A list of datasets to load
     :param bands: Which measurements to load
@@ -264,8 +267,7 @@ def load_enum_mask(
     chunks: dict[str, int] | None = None,
     **kw,
 ) -> xr.DataArray:
-    """
-    Load enumerated mask (like fmask).
+    """Load enumerated mask (like fmask).
 
     1. Load each mask time slice separately in native projection of the file
     2. Convert enum to Boolean (F:0, T:255)
@@ -311,8 +313,7 @@ def load_enum_filtered(
     chunks: dict[str, int] | None = None,
     **kw,
 ) -> xr.DataArray:
-    """
-    Load enumerated mask (like fmask/SCL) with native pixel filtering.
+    """Load enumerated mask (like fmask/SCL) with native pixel filtering.
 
     The idea is to load "cloud" classes while adding some padding, then erase
     pixels that were classified as cloud in any of the observations on a given
@@ -356,8 +357,7 @@ def load_enum_filtered(
         )
 
     def fuser(xx: xr.Dataset) -> xr.Dataset:
-        """
-        Fuse with OR.
+        """Fuse with OR.
 
         Fuse with OR, and when fusing in native pixel domain apply mask_cleanup if
         requested
@@ -377,7 +377,7 @@ def load_enum_filtered(
     pad: int | None = kw.pop("pad", None)
     if pad is None:
         if filters is not None:
-            pad = max(list(zip(*filters))[1])  # type: ignore
+            pad = max(list(zip(*filters, strict=False))[1])  # type: ignore
 
     xx = load_with_native_transform(
         dss,

@@ -2,9 +2,10 @@
 #
 # Copyright (c) 2015-2025 ODC Contributors
 # SPDX-License-Identifier: Apache-2.0
+from __future__ import annotations
+
 import uuid
-from collections.abc import Hashable
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import dask
 import dask.array as da
@@ -13,15 +14,18 @@ import xarray as xr
 from dask.base import tokenize
 from dask.delayed import Delayed
 from dask.highlevelgraph import HighLevelGraph
-from distributed import Client
 
 from ._dask import _roi_from_chunks, unpack_chunks
+
+if TYPE_CHECKING:
+    from collections.abc import Hashable
+
+    from distributed import Client
 
 ShapeLike = int | tuple[int, ...]
 DtypeLike = str | np.dtype
 ROI = slice | tuple[slice, ...]
 MaybeROI = ROI | None
-CacheKey = "Token" | str
 
 _cache: dict[str, np.ndarray] = {}
 
@@ -55,6 +59,9 @@ class Token:
     def __setstate__(self, k):
         print(f"Token.__setstate__(<{k}>)@0x{id(self):08X}")
         raise ValueError("Token should not be pickled")
+
+
+CacheKey = Token | str
 
 
 class Cache:
@@ -116,11 +123,11 @@ class CachedArray:
         self.data[key] = item
 
     @staticmethod
-    def new(shape: ShapeLike, dtype: DtypeLike) -> "CachedArray":
+    def new(shape: ShapeLike, dtype: DtypeLike) -> CachedArray:
         return CachedArray(Cache.new(shape, dtype))
 
     @staticmethod
-    def wrap(x: np.ndarray) -> "CachedArray":
+    def wrap(x: np.ndarray) -> CachedArray:
         return CachedArray(Cache.put(x))
 
     def release(self) -> np.ndarray | None:

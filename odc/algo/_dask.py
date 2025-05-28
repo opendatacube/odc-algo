@@ -9,7 +9,7 @@ Generic dask helpers
 import functools
 from bisect import bisect_left, bisect_right
 from collections.abc import Hashable, Iterator
-from datetime import datetime
+from datetime import datetime, timezone
 from random import randint
 from typing import Any, Union, cast
 
@@ -607,7 +607,7 @@ def wait_for_future(
     :param t0: From what point to start counting (defaults to right now)
     """
     if t0 is None:
-        t0 = datetime.utcnow()
+        t0 = datetime.now(timezone.utc)
 
     while not future.done():
         try:
@@ -615,6 +615,6 @@ def wait_for_future(
             return
         except dask.distributed.TimeoutError:
             pass
-        t_now = datetime.utcnow()
+        t_now = datetime.now(timezone.utc)
 
         yield (t_now - t0).total_seconds(), t_now

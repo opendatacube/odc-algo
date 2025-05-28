@@ -6,7 +6,7 @@
 Dask aware reproject implementation
 """
 
-from typing import Any, Optional, Union
+from typing import Any
 
 import dask.array as da
 import dask.utils as du
@@ -34,8 +34,8 @@ def _reproject_block_impl(
     src_geobox: GeoBox,
     dst_geobox: GeoBox,
     resampling: str = "nearest",
-    src_nodata: Optional[NodataType] = None,
-    dst_nodata: Optional[NodataType] = None,
+    src_nodata: NodataType | None = None,
+    dst_nodata: NodataType | None = None,
     axis: int = 0,
     **kwargs,
 ) -> np.ndarray:
@@ -73,8 +73,8 @@ def _reproject_block_bool_impl(
     src_geobox: GeoBox,
     dst_geobox: GeoBox,
     resampling: str = "nearest",
-    src_nodata: Optional[NodataType] = None,
-    dst_nodata: Optional[NodataType] = None,
+    src_nodata: NodataType | None = None,
+    dst_nodata: NodataType | None = None,
     axis: int = 0,
     **kwargs,
 ) -> np.ndarray:
@@ -99,9 +99,9 @@ def dask_reproject(
     src_geobox: GeoBox,
     dst_geobox: GeoBox,
     resampling: str = "nearest",
-    chunks: Optional[tuple[int, int]] = None,
-    src_nodata: Optional[NodataType] = None,
-    dst_nodata: Optional[NodataType] = None,
+    chunks: tuple[int, int] | None = None,
+    src_nodata: NodataType | None = None,
+    dst_nodata: NodataType | None = None,
     axis: int = 0,
     name: str = "reproject",
     **kwargs,
@@ -197,8 +197,8 @@ def xr_reproject_array(
     src: xr.DataArray,
     geobox: GeoBox,
     resampling: str = "nearest",
-    chunks: Optional[tuple[int, int]] = None,
-    dst_nodata: Optional[NodataType] = None,
+    chunks: tuple[int, int] | None = None,
+    dst_nodata: NodataType | None = None,
     **kwargs,
 ) -> xr.DataArray:
     """
@@ -266,13 +266,13 @@ def xr_reproject_array(
 
 # pylint: enable=too-many-locals
 def xr_reproject(
-    src: Union[xr.DataArray, xr.Dataset],
+    src: xr.DataArray | xr.Dataset,
     geobox: GeoBox,
     resampling: str = "nearest",
-    chunks: Optional[tuple[int, int]] = None,
-    dst_nodata: Optional[NodataType] = None,
+    chunks: tuple[int, int] | None = None,
+    dst_nodata: NodataType | None = None,
     **kwargs,
-) -> Union[xr.DataArray, xr.Dataset]:
+) -> xr.DataArray | xr.Dataset:
     """
     Reproject DataArray to a given GeoBox
 
@@ -309,7 +309,7 @@ def xr_reproject(
 def _shrink2(
     xx: np.ndarray,
     resampling: str = "nearest",
-    nodata: Optional[NodataType] = None,
+    nodata: NodataType | None = None,
     axis: int = 0,
 ):
     """

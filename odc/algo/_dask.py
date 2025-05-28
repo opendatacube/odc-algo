@@ -11,7 +11,7 @@ from bisect import bisect_left, bisect_right
 from collections.abc import Hashable, Iterator
 from datetime import datetime, timezone
 from random import randint
-from typing import Any, Union, cast
+from typing import Any, cast
 
 import dask
 import dask.array as da
@@ -378,7 +378,7 @@ def _compute_chunk_range(
 
 def compute_chunk_range(
     roi: ROI,
-    chunks: Union[tuple[int, ...], tuple[tuple[int, ...]]],
+    chunks: tuple[int, ...] | tuple[tuple[int, ...]],
     summed: bool = False,
 ) -> tuple[ROI, ROI]:
     """
@@ -496,7 +496,7 @@ def _reshape_yxbt_impl(blocks, crop_yx=None, dtype=None):
 def reshape_yxbt(
     xx: xr.Dataset,
     name: str = "reshape_yxbt",
-    yx_chunks: Union[int, tuple[int, int]] = -1,
+    yx_chunks: int | tuple[int, int] = -1,
 ) -> xr.DataArray:
     """
     Reshape Dask-backed ``xr.Dataset[Time,Y,X]`` into

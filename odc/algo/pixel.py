@@ -5,7 +5,6 @@
 """Helper methods for accessing single pixel from a rasterio file object."""
 
 from collections.abc import Iterable
-from typing import Optional, Union
 
 import rasterio
 import rasterio.crs
@@ -14,8 +13,8 @@ import rasterio.warp
 RowCol = tuple[int, int]
 XY = tuple[float, float]
 LonLat = tuple[float, float]
-SomeCoord = Union[RowCol, XY, LonLat]
-PixelValue = Union[float, int]
+SomeCoord = RowCol | XY | LonLat
+PixelValue = float | int
 
 
 NOTSET = object()
@@ -130,10 +129,10 @@ def _resolve_nodata(src, band, fallback=None, override=None):
 
 
 def _mode_value(
-    pixel: Optional[RowCol] = None,
-    xy: Optional[XY] = None,
-    lonlat: Optional[LonLat] = None,
-) -> Union[tuple[str, SomeCoord], tuple[None, None]]:
+    pixel: RowCol | None = None,
+    xy: XY | None = None,
+    lonlat: LonLat | None = None,
+) -> tuple[str, SomeCoord] | tuple[None, None]:
     if pixel is not None:
         return "pixel", pixel
 
@@ -148,9 +147,9 @@ def _mode_value(
 
 def read_pixels(
     urls: Iterable[str],
-    pixel: Optional[RowCol] = None,
-    xy: Optional[XY] = None,
-    lonlat: Optional[LonLat] = None,
+    pixel: RowCol | None = None,
+    xy: XY | None = None,
+    lonlat: LonLat | None = None,
     band: int = 1,
     **kwargs,
 ) -> list[PixelValue]:

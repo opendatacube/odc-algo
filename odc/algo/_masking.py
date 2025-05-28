@@ -2,15 +2,15 @@
 #
 # Copyright (c) 2015-2025 ODC Contributors
 # SPDX-License-Identifier: Apache-2.0
-"""
-Mostly masking related.
+"""Mostly masking related.
 
 Also converting between float[with nans] and int[with nodata].
 """
 
-from collections.abc import Iterable
+from __future__ import annotations
+
 from functools import partial
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import dask
 import dask.array as da
@@ -20,6 +20,9 @@ import xarray as xr
 from dask.highlevelgraph import HighLevelGraph
 
 from ._dask import _get_chunks_asarray, randomize
+
+if TYPE_CHECKING:
+    from collections.abc import Iterable
 
 
 def default_nodata(dtype):

@@ -4,11 +4,16 @@
 # SPDX-License-Identifier: Apache-2.0
 """Helper methods for accessing single pixel from a rasterio file object."""
 
-from collections.abc import Iterable
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
 
 import rasterio
 import rasterio.crs
 import rasterio.warp
+
+if TYPE_CHECKING:
+    from collections.abc import Iterable
 
 RowCol = tuple[int, int]
 XY = tuple[float, float]

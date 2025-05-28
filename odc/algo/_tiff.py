@@ -2,11 +2,13 @@
 #
 # Copyright (c) 2015-2025 ODC Contributors
 # SPDX-License-Identifier: Apache-2.0
+from __future__ import annotations
+
 import threading
 import warnings
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 from uuid import uuid4
 
 import dask
@@ -22,8 +24,10 @@ from rasterio.shutil import copy as rio_copy
 from rasterio.windows import Window
 
 from ._numeric import half_up, np_slice_to_idx, roi_shrink2, roundup16
-from ._types import NodataType, NumpyIndex
 from ._warp import _shrink2
+
+if TYPE_CHECKING:
+    from ._types import NodataType, NumpyIndex
 
 # pylint: disable=import-outside-toplevel,invalid-name
 _UNSET = ":unset:-427d8b3f1944"
@@ -60,7 +64,7 @@ class GeoRasterInfo:
         return np.dtype(self.dtype).itemsize * self.width * self.height * self.count
 
     @staticmethod
-    def from_xarray(xx: xr.DataArray) -> "GeoRasterInfo":
+    def from_xarray(xx: xr.DataArray) -> GeoRasterInfo:
         axis = 0
         geobox = getattr(xx, "geobox", None)
         if geobox is None:
@@ -91,7 +95,7 @@ class GeoRasterInfo:
             axis=axis,
         )
 
-    def shrink2(self) -> "GeoRasterInfo":
+    def shrink2(self) -> GeoRasterInfo:
         return GeoRasterInfo(
             width=half_up(self.width),
             height=half_up(self.height),

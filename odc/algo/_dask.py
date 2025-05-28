@@ -2,16 +2,15 @@
 #
 # Copyright (c) 2015-2025 ODC Contributors
 # SPDX-License-Identifier: Apache-2.0
-"""
-Generic dask helpers
-"""
+"""Generic dask helpers."""
+
+from __future__ import annotations
 
 import functools
 from bisect import bisect_left, bisect_right
-from collections.abc import Hashable, Iterator
 from datetime import datetime, timezone
 from random import randint
-from typing import Any, cast
+from typing import TYPE_CHECKING, Any, cast
 
 import dask
 import dask.array as da
@@ -19,12 +18,15 @@ import dask.distributed
 import numpy as np
 import toolz
 import xarray as xr
-from dask import is_dask_collection
+from dask.base import is_dask_collection
 from dask.distributed import wait as dask_wait
 from dask.highlevelgraph import HighLevelGraph
 from toolz import partition_all
 
 from ._tools import ROI, roi_shape, slice_in_out
+
+if TYPE_CHECKING:
+    from collections.abc import Hashable, Iterator
 
 
 def chunked_persist(data, n_concurrent, client, verbose=False):

@@ -2,10 +2,12 @@
 #
 # Copyright (c) 2015-2025 ODC Contributors
 # SPDX-License-Identifier: Apache-2.0
-"""Dask Distributed Tools
+"""Dask Distributed Tools.
 
 - pool_broadcast
 """
+
+from __future__ import annotations
 
 from random import randint
 from typing import Any

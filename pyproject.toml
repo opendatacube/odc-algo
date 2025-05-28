@@ -1,8 +1,48 @@
 [build-system]
-requires = ["setuptools>=51.0.0", "wheel", "setuptools_scm[toml]>=6.2"]
+requires = ["setuptools>=69", "setuptools_scm[toml]>=6.2"]
 build-backend = "setuptools.build_meta"
 
+[project]
+name = "odc-algo"
+description = "Miscellaneous Algorithmic helper methods"
+authors = [{name = "Open Data Cube"}]
+maintainers = [{name = "Open Data Cube"}]
+license = "Apache-2.0"
+requires-python = ">=3.10"
+dependencies = [
+    "affine",
+    "dask",
+    "dask-image",
+    "datacube>=1.8.5",
+    "distributed<2025.4",  # Breaks memsink
+    "numexpr",
+    "numpy",
+    "rasterio>=1.3.2",
+    "scikit-image",
+    "toolz",
+    "xarray",
+]
+readme = "README.md"
+dynamic = ["version"]
+
+[project.urls]
+Homepage = "https://opendatacube.org/"
+Source = "https://github.com/opendatacube/odc-algo/"
+
+[project.optional-dependencies]
+hdstats = ['hdstats>=0.1.8.post1']
+s3 = [
+    'boto3',
+    'odc-cloud'
+]
+
 [tool.setuptools_scm]
+
+[dependency-groups]
+dev = [
+    'pytest',
+    'ruff',
+]
 
 [tool.ruff.lint]
 select = [

@@ -40,6 +40,7 @@ s3 = [
 
 [dependency-groups]
 dev = [
+    "pdbpp>=0.11.6",
     'pytest',
     'ruff',
 ]

@@ -3,10 +3,10 @@
 # Copyright (c) 2015-2025 ODC Contributors
 # SPDX-License-Identifier: Apache-2.0
 import pytest
-from odc.algo._grouper import group_by_nothing, key2num, mid_longitude, solar_offset
-
 from datacube.testutils import mk_sample_dataset
 from datacube.utils import geometry as geom
+
+from odc.algo._grouper import group_by_nothing, key2num, mid_longitude, solar_offset
 
 
 @pytest.mark.parametrize("lon,lat", [(0, 10), (100, -10), (-120, 30)])
@@ -26,7 +26,7 @@ def test_mid_lon(lon, lat):
 
 
 @pytest.mark.parametrize(
-    "input,expect",
+    "input_,expect",
     [
         ("ABAAC", [0, 1, 0, 0, 2]),
         ("B", [0]),
@@ -34,17 +34,17 @@ def test_mid_lon(lon, lat):
         ("ABCC", [0, 1, 2, 2]),
     ],
 )
-def test_key2num(input, expect):
-    rr = list(key2num(input))
+def test_key2num(input_, expect):
+    rr = list(key2num(input_))
     assert rr == expect
 
     reverse = {}
-    rr = list(key2num(input, reverse))
+    rr = list(key2num(input_, reverse))
     assert rr == expect
-    assert set(reverse.keys()) == set(range(len(set(input))))
-    assert set(reverse.values()) == set(input)
+    assert set(reverse.keys()) == set(range(len(set(input_))))
+    assert set(reverse.values()) == set(input_)
     # first entry always gets an index of 0
-    assert reverse[0] == input[0]
+    assert reverse[0] == input_[0]
 
 
 @pytest.fixture
@@ -56,7 +56,7 @@ def sample_geobox():
 
 @pytest.fixture
 def sample_ds(sample_geobox):
-    yield mk_sample_dataset([dict(name="red")], geobox=sample_geobox)
+    yield mk_sample_dataset([{"name": "red"}], geobox=sample_geobox)
 
 
 def test_grouper(sample_ds):

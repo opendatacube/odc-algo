@@ -3,12 +3,14 @@
 # Copyright (c) 2015-2025 ODC Contributors
 # SPDX-License-Identifier: Apache-2.0
 """Methods for grouping Datasets spatialy and otherwise."""
+
+from collections.abc import Hashable, Iterable, Iterator
+from datetime import timedelta
+from typing import Any, Optional
+
 import numpy as np
 import pandas as pd
 import xarray as xr
-from datetime import timedelta
-from typing import Any, Dict, Hashable, Iterable, Iterator, List, Optional
-
 from datacube.model import Dataset
 from datacube.utils.dates import normalise_dt
 from datacube.utils.geometry import Geometry
@@ -37,14 +39,14 @@ def solar_offset(geom: Geometry, precision: str = "h") -> timedelta:
 
 
 def key2num(
-    objs: Iterable[Hashable], reverse_map: Optional[Dict[int, Any]] = None
+    objs: Iterable[Hashable], reverse_map: Optional[dict[int, Any]] = None
 ) -> Iterator[int]:
     """
     Given a sequence of hashable objects return sequence of numeric ids starting from 0.
 
     For example ``'A' 'B' 'A' 'A' 'C' -> 0 1 0 0 2``
     """
-    o2id: Dict[Any, int] = {}
+    o2id: dict[Any, int] = {}
     c = 0
     for obj in objs:
         _c = o2id.setdefault(obj, c)
@@ -56,7 +58,7 @@ def key2num(
 
 
 def group_by_nothing(
-    dss: List[Dataset], solar_day_offset: Optional[timedelta] = None
+    dss: list[Dataset], solar_day_offset: Optional[timedelta] = None
 ) -> xr.DataArray:
     """
     No op grouping of datasets.
@@ -78,7 +80,7 @@ def group_by_nothing(
     idx = np.arange(0, len(dss), dtype="uint32")
     uuids = np.empty(len(dss), dtype="O")
     data = np.empty(len(dss), dtype="O")
-    grid2crs: Dict[int, Any] = {}
+    grid2crs: dict[int, Any] = {}
     grid = list(key2num((ds.crs for ds in dss), grid2crs))
 
     for i, ds in enumerate(dss):
@@ -94,5 +96,5 @@ def group_by_nothing(
     coord = pd.MultiIndex.from_arrays(coords, names=names)
 
     return xr.DataArray(
-        data=data, coords=dict(spec=coord), attrs={"grid2crs": grid2crs}, dims=("spec",)
+        data=data, coords={"spec": coord}, attrs={"grid2crs": grid2crs}, dims=("spec",)
     )

@@ -8,6 +8,7 @@ import pytest
 import toolz
 from dask import delayed
 from dask.distributed import Client
+
 from odc.algo._dask import (
     _rechunk_2x2,
     _stack_2d_np,

@@ -3,11 +3,13 @@
 # Copyright (c) 2015-2025 ODC Contributors
 # SPDX-License-Identifier: Apache-2.0
 """Helpers for dealing with RGB(A) images."""
+
+from typing import Optional, Union
+
 import dask
 import dask.array as da
 import numpy as np
 import xarray as xr
-from typing import List, Optional, Tuple, Union
 
 from ._dask import randomize
 
@@ -22,16 +24,16 @@ def is_rgb(x: xr.DataArray):
     return True
 
 
-def guess_rgb_names(bands: List[str]) -> Tuple[str, str, str]:
+def guess_rgb_names(bands: list[str]) -> tuple[str, str, str]:
     out = []
     for c in ("red", "green", "blue"):
         candidates = [name for name in bands if c in name]
         n = len(candidates)
         if n == 0:
-            raise ValueError('Found no candidate for color "{}"'.format(c))
+            raise ValueError(f'Found no candidate for color "{c}"')
 
         if n > 1:
-            raise ValueError('Found too many candidates for color "{}"'.format(c))
+            raise ValueError(f'Found too many candidates for color "{c}"')
 
         out.append(candidates[0])
     r, g, b = out  # pylint:disable=unbalanced-tuple-unpacking
@@ -58,7 +60,7 @@ def to_rgba_np(
     g: np.ndarray,
     b: np.ndarray,
     nodata: Optional[float],
-    clamp: Tuple[float, float],
+    clamp: tuple[float, float],
 ) -> np.ndarray:
     rgba = np.zeros((*r.shape, 4), dtype="uint8")
 
@@ -80,8 +82,8 @@ def to_rgba_np(
 
 def to_rgba(
     ds: xr.Dataset,
-    clamp: Optional[Union[float, Tuple[float, float]]] = None,
-    bands: Optional[Tuple[str, str, str]] = None,
+    clamp: Optional[Union[float, tuple[float, float]]] = None,
+    bands: Optional[tuple[str, str, str]] = None,
 ) -> xr.DataArray:
     """Given `xr.Dataset` with bands `red,green,blue` construct `xr.Datarray`
         containing uint8 rgba image.

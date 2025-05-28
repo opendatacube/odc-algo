@@ -6,6 +6,7 @@ import dask.array as da
 import numpy as np
 import pytest
 import xarray as xr
+
 from odc.algo._percentile import np_percentile, xr_quantile, xr_quantile_bands
 
 
@@ -71,7 +72,7 @@ def test_xr_quantile_bands(nodata, use_dask):
     band_1[np.random.random(size=band_1.shape) > 0.5] = nodata
     band_2[np.random.random(size=band_1.shape) > 0.5] = nodata
 
-    true_results = dict()
+    true_results = {}
     true_results["band_1_pc_20"] = np_percentile(band_1, 0.2, nodata)
     true_results["band_2_pc_20"] = np_percentile(band_2, 0.2, nodata)
     true_results["band_1_pc_60"] = np_percentile(band_1, 0.6, nodata)
@@ -109,7 +110,7 @@ def test_xr_quantile(nodata, use_dask):
     band_1[np.random.random(size=band_1.shape) > 0.5] = nodata
     band_2[np.random.random(size=band_1.shape) > 0.5] = nodata
 
-    true_results = dict()
+    true_results = {}
     true_results["band_1"] = np.stack(
         [np_percentile(band_1, 0.2, nodata), np_percentile(band_1, 0.6, nodata)], axis=0
     )

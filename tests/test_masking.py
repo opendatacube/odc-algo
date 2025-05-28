@@ -7,6 +7,7 @@ import dask.array as da
 import numpy as np
 import pytest
 import xarray as xr
+
 from odc.algo._masking import (
     _enum_to_mask_numexpr,
     _fuse_mean_np,
@@ -34,7 +35,7 @@ def test_gap_fill():
         name="test_a",
         dims=("t",),
         attrs={"p1": 1, "nodata": 0},
-        coords=dict(t=np.arange(a.shape[0])),
+        coords={"t": np.arange(a.shape[0])},
     )
     xb = xa + 0
     xb.data[:] = b
@@ -60,7 +61,7 @@ def test_gap_fill():
         name="test_a",
         dims=("t",),
         attrs={"p1": 1},
-        coords=dict(t=np.arange(a.shape[0])),
+        coords={"t": np.arange(a.shape[0])},
     )
     xb = xa + 0
     xb.data[:] = b
@@ -74,7 +75,7 @@ def test_gap_fill():
         name="test_a",
         dims=("t",),
         attrs={"p1": 1},
-        coords=dict(t=np.arange(a.shape[0])),
+        coords={"t": np.arange(a.shape[0])},
     )
 
     xb = xr.DataArray(
@@ -82,7 +83,7 @@ def test_gap_fill():
         name="test_a",
         dims=("t",),
         attrs={"p1": 1},
-        coords=dict(t=np.arange(b.shape[0])),
+        coords={"t": np.arange(b.shape[0])},
     )
 
     assert dask.is_dask_collection(xa)
@@ -97,14 +98,15 @@ def test_gap_fill():
 
 def test_fmask_to_bool():
     def _fake_flags(prefix="cat_", n=65):
-        return dict(
-            bits=list(range(8)), values={str(i): f"{prefix}{i}" for i in range(0, n)}
-        )
+        return {
+            "bits": list(range(8)),
+            "values": {str(i): f"{prefix}{i}" for i in range(0, n)},
+        }
 
-    flags_definition = dict(fmask=_fake_flags())
+    flags_definition = {"fmask": _fake_flags()}
 
     fmask = xr.DataArray(
-        np.arange(0, 65, dtype="uint8"), attrs=dict(flags_definition=flags_definition)
+        np.arange(0, 65, dtype="uint8"), attrs={"flags_definition": flags_definition}
     )
 
     mm = fmask_to_bool(fmask, ("cat_1", "cat_3"))
@@ -138,7 +140,7 @@ def test_fmask_to_bool():
     assert tuple(ii) == (31, 63)
 
     # check _get_enum_values
-    flags_definition = dict(cat=_fake_flags("cat_"), dog=_fake_flags("dog_"))
+    flags_definition = {"cat": _fake_flags("cat_"), "dog": _fake_flags("dog_")}
     assert _get_enum_values(("cat_0",), flags_definition) == (0,)
     assert _get_enum_values(("cat_0", "cat_12"), flags_definition) == (0, 12)
     assert _get_enum_values(("dog_0", "dog_13"), flags_definition) == (0, 13)
@@ -160,16 +162,17 @@ def test_enum_to_mask():
     nmax = 129
 
     def _fake_flags(prefix="cat_", n=nmax + 1):
-        return dict(
-            bits=list(range(8)), values={str(i): f"{prefix}{i}" for i in range(0, n)}
-        )
+        return {
+            "bits": list(range(8)),
+            "values": {str(i): f"{prefix}{i}" for i in range(0, n)},
+        }
 
-    flags_definition = dict(fmask=_fake_flags())
+    flags_definition = {"fmask": _fake_flags()}
 
     fmask_no_flags = xr.DataArray(np.arange(0, nmax + 1, dtype="uint16"))
     fmask = xr.DataArray(
         np.arange(0, nmax + 1, dtype="uint16"),
-        attrs=dict(flags_definition=flags_definition),
+        attrs={"flags_definition": flags_definition},
     )
 
     mm = enum_to_bool(fmask, ("cat_1", "cat_3", nmax, 33))
@@ -274,5 +277,5 @@ def test_mask_cleanup_np():
     assert (result == expected_result).all()
 
     invalid_mask_filter = [("oppening", 1), ("dilation", 1)]
-    with pytest.raises(Exception):
+    with pytest.raises(ValueError):
         mask_cleanup_np(mask, invalid_mask_filter)

@@ -5,8 +5,10 @@
 """
 Misc numeric tooling
 """
+
+from typing import Optional
+
 import numpy as np
-from typing import Optional, Tuple
 
 from ._types import NumpyIndex, NumpyIndex1
 
@@ -21,7 +23,7 @@ def half_up(n: int) -> int:
     return (n + 1) // 2
 
 
-def np_slice_to_idx(idx: NumpyIndex1, n: int) -> Tuple[int, ...]:
+def np_slice_to_idx(idx: NumpyIndex1, n: int) -> tuple[int, ...]:
     """
     Convert slice into a tuple of 0-based indexes
     """
@@ -72,7 +74,7 @@ def roi_shrink2(idx: NumpyIndex, axis: int = 0) -> NumpyIndex:
     )
 
 
-def shape_shrink2(shape: Tuple[int, ...], axis: int = 0) -> Tuple[int, ...]:
+def shape_shrink2(shape: tuple[int, ...], axis: int = 0) -> tuple[int, ...]:
     """
     Given a shape compute half sized image shape
 

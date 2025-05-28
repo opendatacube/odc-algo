@@ -5,25 +5,21 @@
 """Native load and masking."""
 
 import json
-import xarray as xr
-import pandas as pd
-from pyproj import aoi, transformer
+from collections.abc import Iterable, Sequence
 from typing import (
     Callable,
-    Dict,
-    Iterable,
-    List,
     Optional,
-    Sequence,
-    Tuple,
     Union,
     cast,
 )
 
+import xarray as xr
 from datacube import Datacube
 from datacube.model import Dataset
 from datacube.testutils.io import native_geobox
 from datacube.utils.geometry import GeoBox, gbox
+from pyproj import aoi, transformer
+
 from ._grouper import group_by_nothing, solar_offset
 from ._masking import _max_fuser, _nodata_fuser, _or_fuser, enum_to_bool, mask_cleanup
 from ._warp import xr_reproject
@@ -94,7 +90,7 @@ def choose_transform_path(
     raise ValueError(f"Not able to find transform path by {transform_code}")
 
 
-def _split_by_grid(xx: xr.DataArray) -> List[xr.DataArray]:
+def _split_by_grid(xx: xr.DataArray) -> list[xr.DataArray]:
     def extract(grid_id, ii):
         yy = xx[ii]
         crs = xx.grid2crs[grid_id]
@@ -108,16 +104,16 @@ def _split_by_grid(xx: xr.DataArray) -> List[xr.DataArray]:
 # pylint: disable=too-many-arguments, too-many-locals
 def _load_with_native_transform_1(
     sources: xr.DataArray,
-    bands: Tuple[str, ...],
+    bands: tuple[str, ...],
     geobox: GeoBox,
     native_transform: Callable[[xr.Dataset], xr.Dataset],
-    optional_bands: Optional[Tuple[str, ...]] = None,
+    optional_bands: Optional[tuple[str, ...]] = None,
     basis: Optional[str] = None,
     groupby: Optional[str] = None,
     fuser: Optional[Callable[[xr.Dataset], xr.Dataset]] = None,
     resampling: str = "nearest",
-    chunks: Optional[Dict[str, int]] = None,
-    load_chunks: Optional[Dict[str, int]] = None,
+    chunks: Optional[dict[str, int]] = None,
+    load_chunks: Optional[dict[str, int]] = None,
     pad: Optional[int] = None,
     **kwargs,
 ) -> xr.Dataset:
@@ -153,9 +149,7 @@ def _load_with_native_transform_1(
     if chunks is not None:
         _chunks = tuple(chunks.get(ax, -1) for ax in ("y", "x"))
 
-    return xr_reproject(
-        xx, geobox, chunks=_chunks, resampling=resampling, **kwargs
-    )  # type: ignore
+    return xr_reproject(xx, geobox, chunks=_chunks, resampling=resampling, **kwargs)  # type: ignore
 
 
 def load_with_native_transform(
@@ -163,13 +157,13 @@ def load_with_native_transform(
     bands: Sequence[str],
     geobox: GeoBox,
     native_transform: Callable[[xr.Dataset], xr.Dataset],
-    optional_bands: Optional[Tuple[str, ...]] = None,
+    optional_bands: Optional[tuple[str, ...]] = None,
     basis: Optional[str] = None,
     groupby: Optional[str] = None,
     fuser: Optional[Callable[[xr.Dataset], xr.Dataset]] = None,
     resampling: str = "nearest",
-    chunks: Optional[Dict[str, int]] = None,
-    load_chunks: Optional[Dict[str, int]] = None,
+    chunks: Optional[dict[str, int]] = None,
+    load_chunks: Optional[dict[str, int]] = None,
     pad: Optional[int] = None,
     **kw,
 ) -> xr.Dataset:
@@ -263,14 +257,14 @@ def load_with_native_transform(
 
 
 def load_enum_mask(
-    dss: List[Dataset],
+    dss: list[Dataset],
     band: str,
     geobox: GeoBox,
     categories: Iterable[Union[str, int]],
     invert: bool = False,
     resampling: str = "nearest",
     groupby: Optional[str] = None,
-    chunks: Optional[Dict[str, int]] = None,
+    chunks: Optional[dict[str, int]] = None,
     **kw,
 ) -> xr.DataArray:
     """
@@ -314,10 +308,10 @@ def load_enum_filtered(
     band: str,
     geobox: GeoBox,
     categories: Iterable[Union[str, int]],
-    filters: Optional[Iterable[Tuple[str, int]]] = None,
+    filters: Optional[Iterable[tuple[str, int]]] = None,
     groupby: Optional[str] = None,
     resampling: str = "nearest",
-    chunks: Optional[Dict[str, int]] = None,
+    chunks: Optional[dict[str, int]] = None,
     **kw,
 ) -> xr.DataArray:
     """

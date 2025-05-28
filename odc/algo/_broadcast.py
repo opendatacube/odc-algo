@@ -6,13 +6,15 @@
 
 - pool_broadcast
 """
-from dask.distributed import Client, Queue
+
 from random import randint
-from typing import Any, Dict, List
+from typing import Any
+
+from dask.distributed import Client, Queue
 
 
 def _bcast_action(
-    q1: Queue, q2: Queue, tk: int, action: Any, args: List[Any], kwargs: Dict[str, Any]
+    q1: Queue, q2: Queue, tk: int, action: Any, args: list[Any], kwargs: dict[str, Any]
 ) -> Any:
     """
 
@@ -36,7 +38,7 @@ def _bcast_action(
 
 
 def pool_broadcast(
-    client: Client, action: Any, *args: List[Any], **kwargs: Dict[str, Any]
+    client: Client, action: Any, *args: list[Any], **kwargs: dict[str, Any]
 ):
     """Call ``action(*args, **kwargs)`` on every worker thread.
 
@@ -61,7 +63,7 @@ def pool_broadcast(
     :param kwargs: Named arguments to action
 
     """
-    postfix = "-{:02x}".format(randint(0, 1 << 64))
+    postfix = f"-{randint(0, 1 << 64):02x}"
     total_worker_threads = sum(client.ncores().values())
     q1 = Queue("q1" + postfix, client=client, maxsize=total_worker_threads)
     q2 = Queue("q2" + postfix, client=client, maxsize=total_worker_threads)
@@ -75,7 +77,7 @@ def pool_broadcast(
             action,
             args,
             kwargs,
-            key="broadcast_action_{:04d}{}".format(i, postfix),
+            key=f"broadcast_action_{i:04d}{postfix}",
         )
         for i in range(total_worker_threads)
     ]

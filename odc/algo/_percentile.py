@@ -2,13 +2,14 @@
 #
 # Copyright (c) 2015-2025 ODC Contributors
 # SPDX-License-Identifier: Apache-2.0
+from collections.abc import Sequence
+from functools import partial
+
 import dask
 import dask.array as da
 import numpy as np
 import xarray as xr
 from dask.base import tokenize
-from functools import partial
-from typing import Sequence
 
 from ._masking import keep_good_np
 
@@ -82,7 +83,7 @@ def xr_quantile_bands(
                 yy = np_percentile(xx_data, percentile=quantile, nodata=nodata)
             data_vars[name] = xr.DataArray(yy, dims=xx.dims[1:], attrs=xx.attrs)
 
-    coords = dict((dim, src.coords[dim]) for dim in xx.dims[1:])
+    coords = {dim: src.coords[dim] for dim in xx.dims[1:]}
     return xr.Dataset(data_vars=data_vars, coords=coords, attrs=src.attrs)
 
 
@@ -135,9 +136,6 @@ def xr_quantile(
         else:
             data_vars[band] = (out_dims, np.stack(data, axis=0))
 
-    # pylint: disable=undefined-loop-variable
-    coords = dict(
-        (dim, src.coords[dim]) for dim in xx.dims[1:]
-    )  # pylint: disable=undefined-loop-variable
+    coords = {dim: src.coords[dim] for dim in xx.dims[1:]}
     coords["quantile"] = np.array(quantiles)
     return xr.Dataset(data_vars=data_vars, coords=coords, attrs=src.attrs)

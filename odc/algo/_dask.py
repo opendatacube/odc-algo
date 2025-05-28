@@ -6,21 +6,23 @@
 Generic dask helpers
 """
 
+import functools
+from bisect import bisect_left, bisect_right
+from collections.abc import Hashable, Iterator
+from datetime import datetime
+from random import randint
+from typing import Any, Union, cast
+
 import dask
 import dask.array as da
-import functools
+import dask.distributed
 import numpy as np
 import toolz
 import xarray as xr
-from bisect import bisect_left, bisect_right
 from dask import is_dask_collection
-import dask.distributed
 from dask.distributed import wait as dask_wait
 from dask.highlevelgraph import HighLevelGraph
-from datetime import datetime
-from random import randint
 from toolz import partition_all
-from typing import Any, Dict, Hashable, Iterator, List, Optional, Tuple, Union, cast
 
 from ._tools import ROI, roi_shape, slice_in_out
 
@@ -97,7 +99,7 @@ def randomize(prefix: str) -> str:
     """
     Append random token to name
     """
-    return "{}-{:08x}".format(prefix, randint(0, 0xFFFFFFFF))
+    return f"{prefix}-{randint(0, 0xFFFFFFFF):08x}"
 
 
 @dask.delayed
@@ -105,7 +107,7 @@ def with_deps(value, *deps):
     return value
 
 
-def list_reshape(x: List[Any], shape: Tuple[int, ...]) -> List[Any]:
+def list_reshape(x: list[Any], shape: tuple[int, ...]) -> list[Any]:
     """
     similar to numpy version of x.reshape(shape), but only works on flat list on input.
     """
@@ -114,7 +116,7 @@ def list_reshape(x: List[Any], shape: Tuple[int, ...]) -> List[Any]:
     return x
 
 
-def unpack_chunksize(chunk: int, N: int) -> Tuple[int, ...]:
+def unpack_chunksize(chunk: int, N: int) -> tuple[int, ...]:
     """
     Compute chunk sizes
     Example: 4, 11 -> (4, 4, 3)
@@ -131,8 +133,8 @@ def unpack_chunksize(chunk: int, N: int) -> Tuple[int, ...]:
 
 
 def unpack_chunks(
-    chunks: Tuple[int, ...], shape: Tuple[int, ...]
-) -> Tuple[Tuple[int, ...], ...]:
+    chunks: tuple[int, ...], shape: tuple[int, ...]
+) -> tuple[tuple[int, ...], ...]:
     """
     Expand chunks
     """
@@ -140,7 +142,7 @@ def unpack_chunks(
     return tuple(unpack_chunksize(ch, n) for ch, n in zip(chunks, shape))
 
 
-def _roi_from_chunks(chunks: Tuple[int, ...]) -> Iterator[slice]:
+def _roi_from_chunks(chunks: tuple[int, ...]) -> Iterator[slice]:
     off = 0
     for v in chunks:
         off_next = off + v
@@ -149,8 +151,8 @@ def _roi_from_chunks(chunks: Tuple[int, ...]) -> Iterator[slice]:
 
 
 def _split_chunks(
-    chunks: Tuple[int, ...], max_chunk: int
-) -> Iterator[Tuple[int, int, slice]]:
+    chunks: tuple[int, ...], max_chunk: int
+) -> Iterator[tuple[int, int, slice]]:
     """
     For every input chunk split it into smaller chunks.
     Return a list of tuples describing output chunks and their relation to input chunks.
@@ -178,7 +180,7 @@ def _get_chunks_asarray(xx: da.Array) -> np.ndarray:
     Returns 2 ndarrays of equivalent shapes
 
     - First one contains dask tasks: (name: str, idx0:int, idx1:int)
-    - Second one contains sizes of blocks (Tuple[int,...])
+    - Second one contains sizes of blocks (tuple[int,...])
     """
     shape_in_chunks = xx.numblocks
     name = xx.name
@@ -208,7 +210,7 @@ def _get_chunks_for_all_bands(xx: xr.Dataset):
     return blocks, shapes
 
 
-def _get_all_chunks(xx: da.Array, flat: bool = True) -> List[Any]:
+def _get_all_chunks(xx: da.Array, flat: bool = True) -> list[Any]:
     shape_in_chunks = xx.numblocks
     name = xx.name
     chunks = [(name, *idx) for idx in np.ndindex(shape_in_chunks)]
@@ -227,7 +229,7 @@ def is_single_chunk_xy(x: da.Array):
 def empty_maker(fill_value, dtype, dsk, name="empty"):
     cache = {}
 
-    def mk_empty(shape: Tuple[int, ...]) -> str:
+    def mk_empty(shape: tuple[int, ...]) -> str:
         x = cache.get(shape, None)
         if x is not None:
             return x
@@ -351,8 +353,8 @@ def _rechunk_2x2(xx, name="2x2"):
 
 
 def _compute_chunk_range(
-    span: slice, chunks: Tuple[int, ...], summed: bool = False
-) -> Tuple[slice, slice]:
+    span: slice, chunks: tuple[int, ...], summed: bool = False
+) -> tuple[slice, slice]:
     """
     Compute slice in chunk space and slice after taking just those chunks
 
@@ -376,9 +378,9 @@ def _compute_chunk_range(
 
 def compute_chunk_range(
     roi: ROI,
-    chunks: Union[Tuple[int, ...], Tuple[Tuple[int, ...]]],
+    chunks: Union[tuple[int, ...], tuple[tuple[int, ...]]],
     summed: bool = False,
-) -> Tuple[ROI, ROI]:
+) -> tuple[ROI, ROI]:
     """
     Convert ROI in pixels to ROI in blocks (broi) + ROI in pixels (crop) such that
 
@@ -389,10 +391,10 @@ def compute_chunk_range(
       broi, crop
     """
     if isinstance(roi, slice):
-        chunks = cast(Tuple[int, ...], chunks)
+        chunks = cast(tuple[int, ...], chunks)
         return _compute_chunk_range(roi, chunks, summed)
 
-    chunks = cast(Tuple[Tuple[int, ...]], chunks)
+    chunks = cast(tuple[tuple[int, ...]], chunks)
     assert len(roi) == len(chunks)
     broi = []
     crop = []
@@ -406,7 +408,7 @@ def compute_chunk_range(
 
 
 def crop_2d_dense(
-    xx: da.Array, yx_roi: Tuple[slice, slice], name: str = "crop_2d", axis: int = 0
+    xx: da.Array, yx_roi: tuple[slice, slice], name: str = "crop_2d", axis: int = 0
 ) -> da.Array:
     """
     xx[.., yx_roi, ..] -> Dask array with 1 single chunk in y,x dimension
@@ -494,7 +496,7 @@ def _reshape_yxbt_impl(blocks, crop_yx=None, dtype=None):
 def reshape_yxbt(
     xx: xr.Dataset,
     name: str = "reshape_yxbt",
-    yx_chunks: Union[int, Tuple[int, int]] = -1,
+    yx_chunks: Union[int, tuple[int, int]] = -1,
 ) -> xr.DataArray:
     """
     Reshape Dask-backed ``xr.Dataset[Time,Y,X]`` into
@@ -566,7 +568,7 @@ def reshape_yxbt(
     dsk = HighLevelGraph.from_collections(name, dsk, dependencies=deps)
     data = da.Array(dsk, name, chunks=chunks, dtype=dtype, shape=shape)
 
-    coords: Dict[Hashable, Any] = dict(xx.coords.items())
+    coords: dict[Hashable, Any] = dict(xx.coords.items())
     coords["band"] = list(xx.data_vars)
 
     return xr.DataArray(data=data, dims=dims, coords=coords, name=name0, attrs=attrs)
@@ -576,7 +578,7 @@ def flatten_kv(xx):
     """
     Turn dictionary into a flat list: [k0, v0, k1, v1, ...].
 
-    Useful for things like map_blocks when passing Dict[str, da.Array] for example.
+    Useful for things like map_blocks when passing dict[str, da.Array] for example.
     """
 
     def _kv(xx):
@@ -595,8 +597,8 @@ def unflatten_kv(xx):
 
 
 def wait_for_future(
-    future, poll_timeout: float = 1.0, t0: Optional[datetime] = None
-) -> Iterator[Tuple[float, datetime]]:
+    future, poll_timeout: float = 1.0, t0: datetime | None = None
+) -> Iterator[tuple[float, datetime]]:
     """
     Generate a sequence of (time_passed, timestamp) tuples, stop when future becomes ready.
 

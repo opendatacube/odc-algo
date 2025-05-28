@@ -3,14 +3,17 @@
 # Copyright (c) 2015-2025 ODC Contributors
 # SPDX-License-Identifier: Apache-2.0
 """Helper methods for accessing single pixel from a rasterio file object."""
+
+from collections.abc import Iterable
+from typing import Optional, Union
+
 import rasterio
 import rasterio.crs
 import rasterio.warp
-from typing import Iterable, List, Optional, Tuple, Union
 
-RowCol = Tuple[int, int]
-XY = Tuple[float, float]
-LonLat = Tuple[float, float]
+RowCol = tuple[int, int]
+XY = tuple[float, float]
+LonLat = tuple[float, float]
 SomeCoord = Union[RowCol, XY, LonLat]
 PixelValue = Union[float, int]
 
@@ -95,7 +98,11 @@ def make_pixel_extractor(
         xy = (x[0], y[0])
         return extract_native(src, xy, band=band)
 
-    extractors = dict(pixel=extract_pixel, native=extract_native, lonlat=extract_lonlat)
+    extractors = {
+        "pixel": extract_pixel,
+        "native": extract_native,
+        "lonlat": extract_lonlat,
+    }
 
     extractor = extractors.get(mode)
     if extractor is None:
@@ -126,7 +133,7 @@ def _mode_value(
     pixel: Optional[RowCol] = None,
     xy: Optional[XY] = None,
     lonlat: Optional[LonLat] = None,
-) -> Union[Tuple[str, SomeCoord], Tuple[None, None]]:
+) -> Union[tuple[str, SomeCoord], tuple[None, None]]:
     if pixel is not None:
         return "pixel", pixel
 
@@ -146,7 +153,7 @@ def read_pixels(
     lonlat: Optional[LonLat] = None,
     band: int = 1,
     **kwargs,
-) -> List[PixelValue]:
+) -> list[PixelValue]:
     """Read a single pixel at the same location from a bunch of different files.
 
     Location can be specified in 3 different ways:

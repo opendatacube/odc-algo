@@ -1,4 +1,50 @@
 [build-system]
 requires = ["setuptools>=51.0.0", "wheel", "setuptools_scm[toml]>=6.2"]
 build-backend = "setuptools.build_meta"
+
 [tool.setuptools_scm]
+
+[tool.ruff.lint]
+select = [
+    "A",  # Don't shadow built-ins
+    "B",  # flake8-bugbear
+    "C4", # flake8-comprehensions
+    "E",  # pycodestyle errors
+    "EXE", # flake8-executable
+    "I",  # isort
+    "N",  # pep8-naming
+    "RUF", # Ruff-specific rules
+    "UP", # pyupgrade
+    "W",  # pycodestyle warnings
+    "F",  # pyflakes
+    "T10", # flake8-debugger
+]
+ignore = [
+    # FIXME: re-enable these rules.
+    "B008",
+    "B022",
+    "B023",
+    "B028",
+    "B905",
+    "RUF005",
+    "RUF012",
+]
+
+[tool.ruff.lint.pep8-naming]
+extend-ignore-names = [
+    "A", "B", "H", "L", "M", "N", "NX", "NY", "R", "S",
+    "T", "W", "WS", "X", "XX", "XY", "YY", "Y", "Z",
+    "ACL", "NT", "NB", "GB"
+]
+
+[tool.ruff.lint.per-file-ignores]
+# Generated file, exclude from linting.
+"datacube/_version.py" = ["I", "UP"]
+# SQLAlchemy has overloaded ==, so use that (or is_) to compare with None.
+"datacube/drivers/postgis/_api.py" = ["E711"]
+"datacube/drivers/postgis/_schema.py" = ["E711"]
+"datacube/drivers/postgres/_api.py" = ["E711"]
+"datacube/drivers/postgres/_schema.py" = ["E711"]
+
+[tool.ruff.lint.pycodestyle]
+max-line-length = 120

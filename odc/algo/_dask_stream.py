@@ -6,17 +6,20 @@
 
 - dask_compute_stream
 """
-import dask.bag
+
 import queue
 import threading
+from collections.abc import Iterable
+from random import randint
+from typing import Any
+
+import dask.bag
 import toolz
 from dask.distributed import Client
-from random import randint
-from typing import Any, Iterable
 
 
 def _randomize(prefix):
-    return "{}-{:08x}".format(prefix, randint(0, 0xFFFFFFFF))
+    return f"{prefix}-{randint(0, 0xFFFFFFFF):08x}"
 
 
 def seq_to_bags(its: Iterable[Any], chunk_sz: int, name: str = "data"):

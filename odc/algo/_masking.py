@@ -8,14 +8,16 @@ Mostly masking related.
 Also converting between float[with nans] and int[with nodata].
 """
 
+from collections.abc import Iterable
+from functools import partial
+from typing import Any, Union
+
 import dask
 import dask.array as da
 import numexpr as ne
 import numpy as np
 import xarray as xr
 from dask.highlevelgraph import HighLevelGraph
-from functools import partial
-from typing import Any, Dict, Iterable, Optional, Tuple, Union
 
 from ._dask import _get_chunks_asarray, randomize
 
@@ -161,7 +163,7 @@ def from_float_np(x, dtype, nodata, scale=1, offset=0, where=None, out=None):
     if out is not None:
         assert out.shape == x.shape
 
-    params = dict(x=x, nodata=nodata, scale=scale, offset=offset)
+    params = {"x": x, "nodata": nodata, "scale": scale, "offset": offset}
 
     # `x == x` is equivalent to `~np.isnan(x)`
 
@@ -182,7 +184,7 @@ def to_float_np(x, nodata=None, scale=1, offset=0, dtype="float32", out=None):
     scale = float_type(scale)
     offset = float_type(offset)
 
-    params = dict(_nan=_nan, scale=scale, offset=offset, x=x, nodata=nodata)
+    params = {"_nan": _nan, "scale": scale, "offset": offset, "x": x, "nodata": nodata}
 
     # warnings: Do NOT allocate memory for ne.evaluate in multithreading
     # as it will introduce race-condition
@@ -272,15 +274,15 @@ def _impl_to_bool_inverted(x, m):
     return ((1 << x) & m) == 0
 
 
-def _flags_invert(flags: Dict[str, Any]) -> Dict[str, Any]:
+def _flags_invert(flags: dict[str, Any]) -> dict[str, Any]:
     _out = dict(**flags)
     _out["values"] = {n: int(v) for v, n in flags["values"].items()}
     return _out
 
 
 def _get_enum_values(
-    names: Iterable[str], flags_definition: Dict[str, Dict[str, Any]], flag: str = ""
-) -> Tuple[int, ...]:
+    names: Iterable[str], flags_definition: dict[str, dict[str, Any]], flag: str = ""
+) -> tuple[int, ...]:
     """
     Lookup enum values in flags definition library
 
@@ -307,7 +309,7 @@ def _get_enum_values(
 
 
 def _mk_ne_isin_condition(
-    values: Tuple[int, ...], var_name: str = "a", invert: bool = False
+    values: tuple[int, ...], var_name: str = "a", invert: bool = False
 ) -> str:
     """
     Produce numexpr expression equivalent to numpys `.isin`
@@ -322,7 +324,7 @@ def _mk_ne_isin_condition(
 
 def _enum_to_mask_numexpr(
     mask: np.ndarray,
-    classes: Tuple[int, ...],
+    classes: tuple[int, ...],
     invert: bool = False,
     value_true: int = 1,
     value_false: int = 0,
@@ -332,7 +334,7 @@ def _enum_to_mask_numexpr(
     expr = f"where({cond}, {value_true}, {value_false})"
     out = np.empty_like(mask, dtype=dtype)
 
-    ne.evaluate(expr, local_dict=dict(m=mask), out=out, casting="unsafe")
+    ne.evaluate(expr, local_dict={"m": mask}, out=out, casting="unsafe")
 
     return out
 
@@ -392,7 +394,7 @@ def binary_closing(xx: xr.DataArray, radius: int = 1, **kw) -> xr.DataArray:
 
 def mask_cleanup_np(
     mask: np.ndarray,
-    mask_filters: Iterable[Tuple[str, int]] = None,
+    mask_filters: Iterable[tuple[str, int]] | None = None,
 ) -> np.ndarray:
     """
     Apply morphological operations on given binary mask.
@@ -404,12 +406,12 @@ def mask_cleanup_np(
 
     assert mask.dtype == "bool"
 
-    ops = dict(
-        opening=morph.binary_opening,
-        closing=morph.binary_closing,
-        dilation=morph.binary_dilation,
-        erosion=morph.binary_erosion,
-    )
+    ops = {
+        "opening": morph.binary_opening,
+        "closing": morph.binary_closing,
+        "dilation": morph.binary_dilation,
+        "erosion": morph.binary_erosion,
+    }
 
     mask_filters = (
         [("opening", 2), ("dilation", 5)] if mask_filters is None else mask_filters
@@ -424,15 +426,15 @@ def mask_cleanup_np(
 
 
 # pylint: enable=import-outside-toplevel
-def _compute_overlap_depth(r: Iterable[int], ndim: int) -> Tuple[int, ...]:
+def _compute_overlap_depth(r: Iterable[int], ndim: int) -> tuple[int, ...]:
     _r = max(r)
     return (0,) * (ndim - 2) + (_r, _r)
 
 
 def mask_cleanup(
     mask: xr.DataArray,
-    mask_filters: Iterable[Tuple[str, int]] = None,
-    name: Optional[str] = None,
+    mask_filters: Iterable[tuple[str, int]] | None = None,
+    name: str | None = None,
 ) -> xr.DataArray:
     """
     Apply morphological operations on given binary mask.
@@ -481,12 +483,12 @@ def mask_cleanup(
 
 def enum_to_bool(
     mask: xr.DataArray,
-    categories: Iterable[Union[str, int]],
+    categories: Iterable[str | int],
     invert: bool = False,
     flag_name: str = "",
     value_true: int = 1,
     value_false: int = 0,
-    dtype: Union[str, np.dtype] = "bool",
+    dtype: str | np.dtype = "bool",
     name: str = "enum_to_bool",
 ) -> xr.DataArray:
     """
@@ -557,7 +559,7 @@ def fmask_to_bool(
 
 
 def _gap_fill_np(a, fallback, nodata):
-    params = dict(a=a, b=fallback, nodata=a.dtype.type(nodata))
+    params = {"a": a, "b": fallback, "nodata": a.dtype.type(nodata)}
 
     out = np.empty_like(a)
 

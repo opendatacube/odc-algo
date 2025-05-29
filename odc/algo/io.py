@@ -132,6 +132,7 @@ def _native_load_1(
                 continue
             else:
                 mm.update(om)
+
     xx = Datacube.load_data(sources, load_geobox, mm, dask_chunks=load_chunks)
     return xx
 
@@ -241,6 +242,13 @@ def load_with_native_transform(
     if load_chunks is None:
         load_chunks = chunks
 
+    _chunks = None
+    if chunks is not None:
+        _chunks = tuple(
+            getattr(geobox.shape, ax) if chunks.get(ax, -1) == -1 else chunks.get(ax)
+            for ax in ("y", "x")
+        )
+
     _xx = []
     # fail if the intended transform not available
     # to avoid any unexpected results
@@ -256,8 +264,8 @@ def load_with_native_transform(
         extra_args = choose_transform_path(
             xx.crs,
             geobox.crs,
-            kw.pop("transform_code"),
-            kw.pop("area_of_interest"),
+            kw.pop("transform_code", None),
+            kw.pop("area_of_interest", None),
         )
         extra_args.update(kw)
 
@@ -273,7 +281,7 @@ def load_with_native_transform(
                 yy,
                 geobox,
                 resampling=resampling,
-                chunks=chunks,
+                chunks=_chunks,
                 **extra_args,
             )  # type: ignore
         ]

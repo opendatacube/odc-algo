@@ -7,7 +7,6 @@
 from __future__ import annotations
 
 import json
-from pyproj import aoi, transformer
 from typing import (
     TYPE_CHECKING,
     cast,
@@ -16,10 +15,14 @@ from typing import (
 import xarray as xr
 from datacube import Datacube
 from datacube.testutils.io import native_geobox
-from odc.geo.geobox import GeoBox, pad as gbox_pad
+from pyproj import aoi, transformer
+
+from odc.geo.geobox import GeoBox
+from odc.geo.geobox import pad as gbox_pad
+from odc.geo.xr import xr_reproject
+
 from ._grouper import group_by_nothing, solar_offset
 from ._masking import _max_fuser, _nodata_fuser, _or_fuser, enum_to_bool, mask_cleanup
-from odc.geo.xr import xr_reproject
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Iterable, Sequence
@@ -46,7 +49,9 @@ def compute_native_load_geobox(
     """
     native: GeoBox = native_geobox(ds, basis=band)
     if buffer is None:
-        buffer = 10 * cast(float, max(map(abs, (native.resolution.y, native.resolution.x))))  # type: ignore
+        buffer = 10 * cast(
+            float, max(map(abs, (native.resolution.y, native.resolution.x)))
+        )  # type: ignore
 
     assert native.crs is not None
     return GeoBox.from_geopolygon(

@@ -12,6 +12,7 @@ from ._numeric import shape_shrink2
 if TYPE_CHECKING:
     from ._types import NodataType
 
+
 def _shrink2(
     xx: np.ndarray,
     resampling: str = "nearest",

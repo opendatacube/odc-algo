@@ -17,6 +17,7 @@ from datacube.utils.dates import normalise_dt
 
 if TYPE_CHECKING:
     from collections.abc import Hashable, Iterable, Iterator
+
     from odc.geo import Geometry
 
 

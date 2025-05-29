@@ -4,10 +4,10 @@
 # SPDX-License-Identifier: Apache-2.0
 import pytest
 from datacube.testutils import mk_sample_dataset
-from odc.geo.geobox import GeoBox
-from odc.geo.geom import box as geom_box
 
 from odc.algo._grouper import group_by_nothing, key2num, mid_longitude, solar_offset
+from odc.geo.geobox import GeoBox
+from odc.geo.geom import box as geom_box
 
 
 @pytest.mark.parametrize("lon,lat", [(0, 10), (100, -10), (-120, 30)])
@@ -50,9 +50,7 @@ def test_key2num(input_, expect):
 
 @pytest.fixture
 def sample_geobox():
-    yield GeoBox.from_geopolygon(
-        geom_box(-10, -20, 11, 22, "epsg:4326"), resolution=1
-    )
+    yield GeoBox.from_geopolygon(geom_box(-10, -20, 11, 22, "epsg:4326"), resolution=1)
 
 
 @pytest.fixture

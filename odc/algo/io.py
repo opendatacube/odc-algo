@@ -111,10 +111,10 @@ def _native_load_1(
     bands: tuple[str, ...],
     geobox: GeoBox,
     *,
-    optional_bands: Optional[Tuple[str, ...]] = None,
-    basis: Optional[str] = None,
-    load_chunks: Optional[Dict[str, int]] = None,
-    pad: Optional[int] = None,
+    optional_bands: tuple[str, ...] | None = None,
+    basis: str | None = None,
+    load_chunks: dict[str, int] | None = None,
+    pad: int | None = None,
 ) -> xr.Dataset:
     if basis is None:
         basis = bands[0]
@@ -141,10 +141,10 @@ def native_load(
     bands: Sequence[str],
     geobox: GeoBox,
     *,
-    optional_bands: Optional[Tuple[str, ...]] = None,
-    basis: Optional[str] = None,
-    load_chunks: Optional[Dict[str, int]] = None,
-    pad: Optional[int] = None,
+    optional_bands: tuple[str, ...] | None = None,
+    basis: str | None = None,
+    load_chunks: dict[str, int] | None = None,
+    pad: int | None = None,
 ):
     sources = group_by_nothing(list(dss), solar_offset(geobox.extent))
     for srcs in _split_by_grid(sources):
@@ -163,8 +163,8 @@ def native_load(
 def _apply_native_transform_1(
     xx: xr.Dataset,
     native_transform: Callable[[xr.Dataset], xr.Dataset],
-    groupby: Optional[str] = None,
-    fuser: Optional[Callable[[xr.Dataset], xr.Dataset]] = None,
+    groupby: str | None = None,
+    fuser: Callable[[xr.Dataset], xr.Dataset] | None = None,
 ) -> xr.Dataset:
     xx = native_transform(xx)
 
@@ -182,10 +182,10 @@ def load_with_native_transform(
     geobox: GeoBox,
     native_transform: Callable[[xr.Dataset], xr.Dataset],
     *,
-    optional_bands: Optional[Tuple[str, ...]] = None,
-    basis: Optional[str] = None,
-    groupby: Optional[str] = None,
-    fuser: Optional[Callable[[xr.Dataset], xr.Dataset]] = None,
+    optional_bands: tuple[str, ...] | None = None,
+    basis: str | None = None,
+    groupby: str | None = None,
+    fuser: Callable[[xr.Dataset], xr.Dataset] | None = None,
     resampling: str = "nearest",
     chunks: dict[str, int] | None = None,
     load_chunks: dict[str, int] | None = None,
@@ -293,7 +293,7 @@ def load_enum_mask(
     band: str,
     geobox: GeoBox,
     *,
-    categories: Iterable[Union[str, int]],
+    categories: Iterable[str | int],
     invert: bool = False,
     resampling: str = "nearest",
     groupby: str | None = None,
@@ -340,9 +340,9 @@ def load_enum_filtered(
     band: str,
     geobox: GeoBox,
     *,
-    categories: Iterable[Union[str, int]],
-    filters: Optional[Iterable[Tuple[str, int]]] = None,
-    groupby: Optional[str] = None,
+    categories: Iterable[str | int],
+    filters: Iterable[tuple[str, int]] | None = None,
+    groupby: str | None = None,
     resampling: str = "nearest",
     chunks: dict[str, int] | None = None,
     **kw,

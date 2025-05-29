@@ -2,10 +2,14 @@
 #
 # Copyright (c) 2015-2025 ODC Contributors
 # SPDX-License-Identifier: Apache-2.0
-"""Dask aware reproject implementation."""
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
 
 import numpy as np
 from affine import Affine
+
+from odc.geo.warp import rio_warp_affine as warp_affine
 
 from ._numeric import shape_shrink2
 

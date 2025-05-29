@@ -57,7 +57,6 @@ from ._numexpr import apply_numexpr, safe_div
 from ._percentile import xr_quantile
 from ._rgba import colorize, is_rgb, to_rgba, to_rgba_np
 from ._tiff import save_cog
-from importlib.metadata import version
 
 __version__ = version("odc-algo")
 
@@ -107,8 +106,6 @@ __all__ = (
     "to_rgba_np",
     "wait_for_future",
     "xr_geomedian",
-    "colorize",
-    "save_cog",
     "xr_quantile",
     "yxbt_sink",
     "yxbt_sink_to_mem",

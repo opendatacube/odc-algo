@@ -276,15 +276,31 @@ def load_with_native_transform(
             fuser=fuser,
         )
 
-        _xx += [
-            xr_reproject(
-                yy,
-                geobox,
-                resampling=resampling,
-                chunks=_chunks,
-                **extra_args,
-            )  # type: ignore
-        ]
+        vars_to_scale = False
+        if isinstance(yy, xr.DataArray):
+            vars_to_scale = True
+            if yy.dtype == "bool":
+                yy = yy.astype("uint8") << 7
+        else:
+            vars_to_scale = [var for var in yy.data_vars if yy[var].dtype == "bool"]
+            yy = yy.assign(
+                **{var: yy[var].astype("uint8") << 7 for var in vars_to_scale}
+            )
+
+        _yy = xr_reproject(
+            yy,
+            geobox,
+            resampling=resampling,
+            chunks=_chunks,
+            **extra_args,
+        )
+
+        if isinstance(_yy, xr.DataArray) and vars_to_scale:
+            _yy = _yy > 64
+        elif vars_to_scale:
+            _yy = _yy.assign(**{var: _yy[var] > 64 for var in vars_to_scale})
+
+        _xx += [_yy]
 
     if len(_xx) == 1:
         xx = _xx[0]

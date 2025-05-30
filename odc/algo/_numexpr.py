@@ -12,7 +12,6 @@ import dask.array as da
 import numexpr as ne
 import numpy as np
 import xarray as xr
-from typing import Any, Dict, Optional
 from dask.base import tokenize
 
 from ._dask import flatten_kv, randomize, unflatten_kv

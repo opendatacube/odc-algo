@@ -13,11 +13,11 @@ dependencies = [
     "affine",
     "dask",
     "dask-image",
-    "datacube>=1.8.5",
     "distributed<2025.4",  # Breaks memsink
     "numexpr",
     "numpy",
     "rasterio>=1.3.2",
+    "odc-geo",
     "scikit-image",
     "toolz",
     "xarray",
@@ -81,15 +81,6 @@ extend-ignore-names = [
     "T", "W", "WS", "X", "XX", "XY", "YY", "Y", "Z",
     "ACL", "NT", "NB", "GB"
 ]
-
-[tool.ruff.lint.per-file-ignores]
-# Generated file, exclude from linting.
-"datacube/_version.py" = ["I", "UP"]
-# SQLAlchemy has overloaded ==, so use that (or is_) to compare with None.
-"datacube/drivers/postgis/_api.py" = ["E711"]
-"datacube/drivers/postgis/_schema.py" = ["E711"]
-"datacube/drivers/postgres/_api.py" = ["E711"]
-"datacube/drivers/postgres/_schema.py" = ["E711"]
 
 [tool.ruff.lint.pycodestyle]
 max-line-length = 120

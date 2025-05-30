@@ -1,3 +1,6 @@
+ci:
+  skip: [pylint]
+
 repos:
     - repo: https://github.com/adrienverge/yamllint.git
       rev: v1.37.1
@@ -43,3 +46,16 @@ repos:
             - license-template.txt
             - --use-current-year
             - --no-extra-eol
+    - repo: local
+      hooks:
+      - id: pylint
+        name: pylint
+        entry: pylint
+        language: system
+        types: [python]
+        args:
+          [
+            "-rn", # Only display messages
+            "-sn", # Don't display the score
+            "--rcfile=pylintrc", # Link to your config file
+          ]

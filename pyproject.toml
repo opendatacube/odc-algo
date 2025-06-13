@@ -13,7 +13,7 @@ dependencies = [
     "affine",
     "dask",
     "dask-image",
-    "distributed<2025.4",  # Breaks memsink
+    "distributed",
     "numexpr",
     "numpy",
     "rasterio>=1.3.2",

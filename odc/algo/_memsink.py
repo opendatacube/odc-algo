@@ -12,13 +12,13 @@ import dask.array as da
 import numpy as np
 import xarray as xr
 from dask.base import tokenize
-from dask.delayed import Delayed
 
 from ._dask import _roi_from_chunks, unpack_chunks
 
 if TYPE_CHECKING:
     from collections.abc import Hashable
 
+    from dask.delayed import Delayed
     from distributed import Client
 
 ShapeLike = int | tuple[int, ...]
@@ -306,7 +306,6 @@ def _da_from_mem(
         arr[tuple(arr_idx)] = d
 
     darr = da.block(arr.tolist())
-    print(darr)
 
     return darr
 

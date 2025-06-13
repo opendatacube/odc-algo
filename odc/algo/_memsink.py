@@ -13,7 +13,6 @@ import numpy as np
 import xarray as xr
 from dask.base import tokenize
 from dask.delayed import Delayed
-from dask.highlevelgraph import HighLevelGraph
 
 from ._dask import _roi_from_chunks, unpack_chunks
 
@@ -28,6 +27,7 @@ ROI = slice | tuple[slice, ...]
 MaybeROI = ROI | None
 
 _cache: dict[str, np.ndarray] = {}
+_shape: dict[str, (ShapeLike, DtypeLike)] = {}
 
 
 class Token:
@@ -66,26 +66,35 @@ CacheKey = Token | str
 
 class Cache:
     @staticmethod
-    def new(shape: ShapeLike, dtype: DtypeLike) -> Token:
-        return Cache.put(np.ndarray(shape, dtype=dtype))
+    def new(shape: ShapeLike, dtype: DtypeLike, k: str):
+        Cache.put(np.ndarray(shape, dtype=dtype), k)
 
     @staticmethod
-    def dask_new(shape: ShapeLike, dtype: DtypeLike, name: str = "") -> Delayed:
+    def collect(k: CacheKey, *_store_tasks, chunks, name: str = "") -> Delayed:
         if name == "":
-            name = f"mem_array_{dtype!s}"
+            name = "collect"
 
-        name = name + "-" + tokenize(name, shape, dtype)
-        dsk = {name: (Cache.new, shape, dtype)}
-        return Delayed(name, dsk)
+        @dask.delayed
+        def make_array(k, *_store_tasks):
+            return Cache.get(k)
+
+        return make_array(str(k), *_store_tasks, dask_key_name=name + "_" + str(k))
 
     @staticmethod
-    def put(x: np.ndarray) -> Token:
+    def register(shape: ShapeLike, dtype: DtypeLike) -> Token:
         k = uuid.uuid4().hex
-        _cache[k] = x
+        _shape[k] = (shape, dtype)
         return Token(k)
 
     @staticmethod
+    def put(x: np.ndarray, k: CacheKey):
+        _cache[k] = x
+
+    @staticmethod
     def get(k: CacheKey) -> np.ndarray | None:
+        shape, dtype = _shape.get(str(k))
+        if k not in _cache:
+            Cache.new(shape, dtype, str(k))
         return _cache.get(str(k), None)
 
     @staticmethod
@@ -184,12 +193,12 @@ def store_to_mem(
     xx: da.Array, client: Client, out: np.ndarray | None = None
 ) -> np.ndarray:
     assert client.scheduler.address.startswith("inproc://")
-    token = None
+    token = Cache.register(xx.shape, xx.dtype)
     if out is None:
-        sink = dask.delayed(CachedArray.new)(xx.shape, xx.dtype)
+        sink = dask.delayed(CachedArray.new)(xx.shape, xx.dtype, str(token))
     else:
         assert out.shape == xx.shape
-        token = Cache.put(out)
+        Cache.put(out, str(token))
         sink = dask.delayed(CachedArray)(str(token))
 
     try:
@@ -209,7 +218,8 @@ def yxbt_sink_to_mem(bands: tuple[da.Array, ...], client: Client) -> np.ndarray:
     dtype = b.dtype
     nt, ny, nx = b.shape
     nb = len(bands)
-    token = Cache.new((ny, nx, nb, nt), dtype)
+    token = Cache.register((ny, nx, nb, nt), dtype)
+    Cache.new((ny, nx, nb, nt), dtype, str(token))
     sinks = [_YXBTSink(str(token), idx) for idx in range(nb)]
     try:
         fut = da.store(bands, sinks, lock=False, compute=False)
@@ -220,7 +230,8 @@ def yxbt_sink_to_mem(bands: tuple[da.Array, ...], client: Client) -> np.ndarray:
         token.release()
 
 
-def _chunk_extractor(cache_key: CacheKey, roi: ROI, *deps) -> np.ndarray:
+@dask.delayed
+def _chunk_extractor(cache_key: str, roi: ROI, *deps) -> Delayed:
     src = Cache.get(cache_key)
     assert src is not None
     return src[roi]
@@ -279,17 +290,25 @@ def _da_from_mem(
 
     shape_in_chunks = tuple(len(ch) for ch in _chunks)
 
-    dsk = {}
-    name = name + "-" + tokenize(token, shape, dtype, chunks)
-    dsk[name] = []
-
+    arr = np.empty(shape_in_chunks, dtype=object)
     for idx in np.ndindex(shape_in_chunks):
-        dsk[(name, *idx)] = (_chunk_extractor, token.key, _roi(idx))
-        dsk[name].append((name, *idx))
+        slices = _roi(idx)
+        out_shape = tuple((slc.stop - slc.start) for slc in slices)
+        d = _chunk_extractor(token.key.split("_")[-1], slices, token)
+        d = da.from_delayed(d, shape=out_shape, dtype=dtype)
 
-    dsk = HighLevelGraph.from_collections(name, dsk, dependencies=[token])
+        indices = tuple(slc.start for slc in slices)
+        arr_idx = []
+        for ax, start in enumerate(indices):
+            chunk_size = out_shape[ax]
+            _idx = start // chunk_size
+            arr_idx.append(_idx)
+        arr[tuple(arr_idx)] = d
 
-    return da.Array(dsk, name, shape=shape, dtype=dtype, chunks=_chunks)
+    darr = da.block(arr.tolist())
+    print(darr)
+
+    return darr
 
 
 def da_mem_sink(xx: da.Array, chunks: tuple[int, ...], name="memsink") -> da.Array:
@@ -315,20 +334,15 @@ def da_mem_sink(xx: da.Array, chunks: tuple[int, ...], name="memsink") -> da.Arr
     """
     tk = tokenize(xx)
 
-    token = Cache.dask_new(xx.shape, xx.dtype, f"{name}_alloc")
+    token = Cache.register(xx.shape, xx.dtype)
 
     # Store everything to MEM and only then evaluate to Token
     sink = dask.delayed(CachedArray)(token)
-    fut = da.store(xx, sink, lock=False, compute=False)
-    sink_name = f"{name}_collect-{tk}"
-    dsk = dict(fut.dask)
-    dsk[sink_name] = (lambda *x: x[0], token.key, *fut.dask[fut.key])
-    dsk = HighLevelGraph.from_collections(sink_name, dsk, dependencies=[sink])
-    token_done = Delayed(sink_name, dsk)
+    fut = da.store([xx], [sink], lock=False, compute=False)
+    sink_name = f"{name}_alloc_collect-{tk}"
 
-    return _da_from_mem(
-        token_done, shape=xx.shape, dtype=xx.dtype, chunks=chunks, name=name
-    )
+    dsk = Cache.collect(token, *fut, chunks=chunks, name=sink_name)
+    return _da_from_mem(dsk, shape=xx.shape, dtype=xx.dtype, chunks=chunks, name=name)
 
 
 def da_yxt_sink(band: da.Array, chunks: tuple[int, int, int], name="yxt") -> da.Array:
@@ -344,17 +358,13 @@ def da_yxt_sink(band: da.Array, chunks: tuple[int, int, int], name="yxt") -> da.
     nt, ny, nx = band.shape
     shape = (ny, nx, nt)
 
-    token = Cache.dask_new(shape, dtype, f"{name}_alloc")
-
+    token = Cache.register(shape, dtype)
     sink = dask.delayed(_YXTSink)(token)
     fut = da.store([band], [sink], lock=False, compute=False)
-    sink_name = f"{name}_collect-{tk}"
-    dsk = dict(fut.dask)
-    dsk[sink_name] = (lambda *x: x[0], token.key, *fut.dask[fut.key])
-    dsk = HighLevelGraph.from_collections(sink_name, dsk, dependencies=[sink])
-    token_done = Delayed(sink_name, dsk)
+    sink_name = f"{name}_alloc_collect-{tk}"
+    dsk = Cache.collect(token, *fut, chunks=chunks, name=sink_name)
 
-    return _da_from_mem(token_done, shape=shape, dtype=dtype, chunks=chunks, name=name)
+    return _da_from_mem(dsk, shape=shape, dtype=dtype, chunks=chunks, name=name)
 
 
 def da_yxbt_sink(
@@ -375,17 +385,13 @@ def da_yxbt_sink(
     nb = len(bands)
     shape = (ny, nx, nb, nt)
 
-    token = Cache.dask_new(shape, dtype, f"{name}_alloc")
-
-    sinks = [dask.delayed(_YXBTSink)(token, idx) for idx in range(nb)]
+    token = Cache.register(shape, dtype)
+    sinks = [_YXBTSink(str(token), idx) for idx in range(nb)]
     fut = da.store(bands, sinks, lock=False, compute=False)
-    sink_name = f"{name}_collect-{tk}"
-    dsk = dict(fut.dask)
-    dsk[sink_name] = (lambda *x: x[0], token.key, *fut.dask[fut.key])
-    dsk = HighLevelGraph.from_collections(sink_name, dsk, dependencies=sinks)
-    token_done = Delayed(sink_name, dsk)
+    sink_name = f"{name}_alloc_collect-{tk}"
+    dsk = Cache.collect(token, *fut, chunks=chunks, name=sink_name)
 
-    return _da_from_mem(token_done, shape=shape, dtype=dtype, chunks=chunks, name=name)
+    return _da_from_mem(dsk, shape=shape, dtype=dtype, chunks=chunks, name=name)
 
 
 def yxbt_sink(

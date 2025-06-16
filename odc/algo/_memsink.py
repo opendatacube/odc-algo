@@ -67,9 +67,8 @@ CacheKey = Token | str
 
 class Cache:
     @staticmethod
-    def new(shape: ShapeLike, dtype: DtypeLike):
-        token = Cache.put(np.ndarray(shape, dtype=dtype))
-        return token
+    def new(shape: ShapeLike, dtype: DtypeLike) -> Token:
+        return Cache.put(np.ndarray(shape, dtype=dtype))
 
     @staticmethod
     def dask_new(shape: ShapeLike, dtype: DtypeLike, name: str = "") -> Delayed:
@@ -205,7 +204,7 @@ def store_to_mem(
         sink = dask.delayed(CachedArray.new)(xx.shape, xx.dtype)
     else:
         assert out.shape == xx.shape
-        Cache.put(out)
+        token = Cache.put(out)
         sink = dask.delayed(CachedArray)(str(token))
 
     try:
@@ -313,7 +312,7 @@ def _da_from_mem(
 
     darr = da.block(arr.tolist())
 
-    # only to retrain the node/task name
+    # only to retain the node/task name
     return darr.map_blocks(lambda x: x, name=name)
 
 
@@ -369,9 +368,9 @@ def da_yxt_sink(band: da.Array, chunks: tuple[int, int, int], name="yxt") -> da.
     sink = dask.delayed(_YXTSink)(token)
     fut = da.store(band, sink, lock=False, compute=False)
     sink_name = f"{name}_collect-{tk}"
-    dsk = Cache.collect(token, fut, name=sink_name)
+    token_done = Cache.collect(token, fut, name=sink_name)
 
-    return _da_from_mem(dsk, shape=shape, dtype=dtype, chunks=chunks, name=name)
+    return _da_from_mem(token_done, shape=shape, dtype=dtype, chunks=chunks, name=name)
 
 
 def da_yxbt_sink(
@@ -397,9 +396,9 @@ def da_yxbt_sink(
     fut = da.store(bands, sinks, lock=False, compute=False)
     sink_name = f"{name}_collect-{tk}"
 
-    dsk = Cache.collect(token, fut, name=sink_name)
+    token_done = Cache.collect(token, fut, name=sink_name)
 
-    return _da_from_mem(dsk, shape=shape, dtype=dtype, chunks=chunks, name=name)
+    return _da_from_mem(token_done, shape=shape, dtype=dtype, chunks=chunks, name=name)
 
 
 def yxbt_sink(

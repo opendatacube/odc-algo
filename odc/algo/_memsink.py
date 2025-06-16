@@ -44,7 +44,6 @@ class Token:
         return len(self._k) > 0
 
     def release(self):
-        # print(f"token is released {self}")
         if self:
             Cache.pop(self)
             self._k = ""
@@ -94,7 +93,7 @@ class Cache:
             return Cache.get(k)
 
     @staticmethod
-    def put(x: np.ndarray):
+    def put(x: np.ndarray) -> Token:
         k = uuid.uuid4().hex
         _cache[k] = x
         return Token(k)

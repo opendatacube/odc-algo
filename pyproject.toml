@@ -14,6 +14,7 @@ dependencies = [
     "dask",
     "dask-image",
     "distributed",
+    "geomad",
     "numexpr",
     "numpy",
     "rasterio>=1.3.2",
@@ -30,7 +31,6 @@ Homepage = "https://opendatacube.org/"
 Source = "https://github.com/opendatacube/odc-algo/"
 
 [project.optional-dependencies]
-geomad = ['geomad']
 s3 = [
     'boto3',
     'odc-cloud'

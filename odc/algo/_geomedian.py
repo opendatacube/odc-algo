@@ -58,7 +58,7 @@ def xr_geomedian(ds, axis="time", where=None, **kw):
        eps        : float       0.0001
        num_threads: int| None   None
     """
-    from hdstats import nangeomedian_pcm
+    from geomad import nangeomedian_pcm
 
     def norm_input(ds, axis):
         if isinstance(ds, xr.DataArray):
@@ -147,7 +147,7 @@ def int_geomedian_np(*bands, nodata=None, scale=1, offset=0, wk_rows=-1, **kw):
     """On input each band is expected to be same shape and dtype with 3 dimensions: time, y, x
     On output: band, y, x
     """
-    from hdstats import nangeomedian_pcm
+    from geomad import nangeomedian_pcm
 
     nt, ny, nx = bands[0].shape
     dtype = bands[0].dtype
@@ -199,7 +199,7 @@ def int_geomedian(ds, scale=1, offset=0, wk_rows=-1, as_array=False, **kw):
     :param offset: ``(x*scale + offset)``
     :param wk_rows: reduce memory requirements by processing that many rows of a chunk at a time
     :param as_array: If set to True return DataArray with band dimension instead of Dataset
-    :param kw: Passed on to hdstats (eps=1e-4, num_threads=1, maxiters=10_000, nocheck=True)
+    :param kw: Passed on to geomad (eps=1e-4, num_threads=1, maxiters=10_000, nocheck=True)
 
     """
     band_names = [dv.name for dv in ds.data_vars.values()]
@@ -280,7 +280,7 @@ def _gm_mads_compute_f32(
     output is however returned in that scaled range.
     """
 
-    import hdstats
+    import geomad
 
     is_float = yxbt.dtype.kind == "f"
     need_scale = (abs(scale - 1) >= 1e-10) & (abs(offset) >= 1e-10)
@@ -301,16 +301,16 @@ def _gm_mads_compute_f32(
     else:
         tmp_input = yxbt
 
-    gm = hdstats.nangeomedian_pcm(tmp_input, nocheck=True, eps=eps, **kw)
+    gm = geomad.nangeomedian_pcm(tmp_input, nocheck=True, eps=eps, **kw)
 
     stats_bands = []
 
     if compute_mads:
-        mads = [hdstats.smad_pcm, hdstats.emad_pcm, hdstats.bcmad_pcm]
+        mads = [geomad.smad_pcm, geomad.emad_pcm, geomad.bcmad_pcm]
 
         for op in mads:
             stats_bands.append(op(tmp_input, gm, num_threads=kw.get("num_threads", 1)))
-            if abs(scale - 1) >= 1e-10 and op == hdstats.emad_pcm:
+            if abs(scale - 1) >= 1e-10 and op == geomad.emad_pcm:
                 stats_bands[-1] *= 1 / scale
 
     if compute_count:

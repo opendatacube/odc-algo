@@ -46,7 +46,7 @@ Alternatively, install with the whl file.
 - [ ] Decide whether to use [pixi], or uv. I think pixi, it handles Rust stuff.
 - [ ] Document the Geomedian API we're trying to expose. See [odc-stats]
 - [ ] Document the Percentile API we're exposing.
-- [ ] Regresssion Tests instead of installing old dependencies like hdstats.
+- [ ] Regresssion Tests instead of installing old dependencies.
 - [ ] Update GitHub Actions to build and test Rust backend
 - [ ] Update GitHub Actions to build and test against multiple Python versions
 - [ ] Consider what type of binary wheels to build. [abi3/multi-python version compatible is tempting]

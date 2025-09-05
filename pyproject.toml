@@ -30,7 +30,7 @@ Homepage = "https://opendatacube.org/"
 Source = "https://github.com/opendatacube/odc-algo/"
 
 [project.optional-dependencies]
-hdstats = ['hdstats>=0.1.8.post1']
+geomad = ['geomad']
 s3 = [
     'boto3',
     'odc-cloud'
@@ -40,6 +40,7 @@ s3 = [
 
 [dependency-groups]
 dev = [
+    "geomad",
     "mypy>=1.15.0",
     "pdbpp>=0.11.6",
     'pytest',

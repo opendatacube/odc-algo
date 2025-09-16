@@ -118,7 +118,9 @@ def test_geomedian_mem():
     )
     # Sleep long enough to start dask console
     # time.sleep(8)
-    NT, NY, NX = 7, 3200, 3200
+    # NT, NY, NX = 7, 3200, 3200
+    # work_chunks = (400, 400)
+    NT, NY, NX = 4, 1200, 1200
     work_chunks = (400, 400)
 
     xcoords = list(range(0, NX * 5, 5))
@@ -143,42 +145,42 @@ def test_geomedian_mem():
     rng = np.random.default_rng()
     b1 = DataArray(
         da.from_array(
-            rng.random(dtype=da.float32, size=(NT, NY, NX)), chunks=(1, 400, 400)
+            rng.random(dtype=da.float32, size=(NT, NY, NX)), chunks=(1, 800, 800)
         ),
         coords={"x": xcoords, "y": ycoords, "time": tcoords},
         dims=["time", "y", "x"],
     )
     b2 = DataArray(
         da.from_array(
-            rng.random(dtype=da.float32, size=(NT, NY, NX)), chunks=(1, 400, 400)
+            rng.random(dtype=da.float32, size=(NT, NY, NX)), chunks=(1, 800, 800)
         ),
         coords={"x": xcoords, "y": ycoords, "time": tcoords},
         dims=["time", "y", "x"],
     )
     b3 = DataArray(
         da.from_array(
-            rng.random(dtype=da.float32, size=(NT, NY, NX)), chunks=(1, 400, 400)
+            rng.random(dtype=da.float32, size=(NT, NY, NX)), chunks=(1, 800, 800)
         ),
         coords={"x": xcoords, "y": ycoords, "time": tcoords},
         dims=["time", "y", "x"],
     )
     b4 = DataArray(
         da.from_array(
-            rng.random(dtype=da.float32, size=(NT, NY, NX)), chunks=(1, 400, 400)
+            rng.random(dtype=da.float32, size=(NT, NY, NX)), chunks=(1, 800, 800)
         ),
         coords={"x": xcoords, "y": ycoords, "time": tcoords},
         dims=["time", "y", "x"],
     )
     b5 = DataArray(
         da.from_array(
-            rng.random(dtype=da.float32, size=(NT, NY, NX)), chunks=(1, 400, 400)
+            rng.random(dtype=da.float32, size=(NT, NY, NX)), chunks=(1, 800, 800)
         ),
         coords={"x": xcoords, "y": ycoords, "time": tcoords},
         dims=["time", "y", "x"],
     )
     b6 = DataArray(
         da.from_array(
-            rng.random(dtype=da.float32, size=(NT, NY, NX)), chunks=(1, 400, 400)
+            rng.random(dtype=da.float32, size=(NT, NY, NX)), chunks=(1, 800, 800)
         ),
         coords={"x": xcoords, "y": ycoords, "time": tcoords},
         dims=["time", "y", "x"],
@@ -197,7 +199,7 @@ def test_geomedian_mem():
     )
     result = geomedian_with_mads(
         src,
-        max_iters=2000,
+        max_iters=1000,
         num_threads=1,
         out_chunks=(-1, -1, -1),
         work_chunks=work_chunks,

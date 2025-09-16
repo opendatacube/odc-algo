@@ -205,7 +205,7 @@ def test_geomedian_mem():
     )
     assert dask.is_dask_collection(result)
     running_result = client.compute(result)
-    for dt, _ in wait_for_future(running_result, 100):
+    for _ in wait_for_future(running_result, 100):
         pass
     complete_result = running_result.result()
     assert not dask.is_dask_collection(complete_result)

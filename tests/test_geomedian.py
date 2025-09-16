@@ -113,8 +113,6 @@ def test_geomedian_dataset():
 
 # @pytest.mark.skip
 def test_geomedian_mem():
-    import time
-
     client = dask.distributed.Client(
         n_workers=1, threads_per_worker=1, memory_limit=9663676416, processes=False
     )

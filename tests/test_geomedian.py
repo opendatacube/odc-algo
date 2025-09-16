@@ -52,6 +52,7 @@ def test_geomedian_dataset():
         np.datetime64("2023-04-09"),
     ]
 
+    # Could specify a seed here to guarantee same random input every test, but doesn't really matter for this test.
     rng = np.random.default_rng()
     b1 = DataArray(
         da.from_array(
@@ -115,10 +116,10 @@ def test_geomedian_mem():
     import time
 
     client = dask.distributed.Client(
-        n_workers=1, threads_per_worker=1, memory_limit=25769803776, processes=False
+        n_workers=1, threads_per_worker=1, memory_limit=9663676416, processes=False
     )
     # Sleep long enough to start dask console
-    time.sleep(8)
+    # time.sleep(8)
     NT, NY, NX = 7, 3200, 3200
     work_chunks = (400, 400)
 

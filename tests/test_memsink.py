@@ -95,6 +95,7 @@ def test_yxbt_sink():
     bb = da.random.uniform(size=(NT, NY, NX), chunks=(1, 5, 4))
 
     yxbt = da_yxbt_sink((aa, bb), (5, 5, -1, -1))
+    assert dask.is_dask_collection(yxbt)
     assert yxbt.chunksize == (5, 5, NB, NT)
     assert yxbt.shape == (NY, NX, NB, NT)
     assert yxbt.dtype == aa.dtype
@@ -112,6 +113,7 @@ def test_da_yxt_sink():
     aa = da.random.uniform(size=(NT, NY, NX), chunks=(1, 5, 4))
 
     yxt = da_yxt_sink(aa, (5, 5, -1))
+    assert dask.is_dask_collection(yxt)
     assert yxt.chunksize == (5, 5, NT)
     assert yxt.shape == (NY, NX, NT)
     assert yxt.dtype == aa.dtype

@@ -19,7 +19,7 @@ concurrency:
 jobs:
 
   integration-tests:
-    timeout-minutes: 15
+    timeout-minutes: 20
     runs-on: ubuntu-latest
 
     strategy:

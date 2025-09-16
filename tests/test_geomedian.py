@@ -120,11 +120,6 @@ def test_geomedian_mem():
     # Sleep long enough to start dask console
     time.sleep(8)
     NT, NY, NX = 7, 3200, 3200
-    NB = 6
-    work_chunks = (400, 400)
-
-    NT, NY, NX = 7, 3200, 3200
-    NB = 6
     work_chunks = (400, 400)
 
     xcoords = list(range(0, NX * 5, 5))

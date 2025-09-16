@@ -2,11 +2,10 @@
 #
 # Copyright (c) 2015-2025 ODC Contributors
 # SPDX-License-Identifier: Apache-2.0
-import pytest
-import numpy as np
 import dask
 import dask.array as da
-from xarray import Dataset, DataArray
+import numpy as np
+from xarray import DataArray, Dataset
 
 from odc.algo import geomedian_with_mads, wait_for_future
 
@@ -18,17 +17,19 @@ def test_geomedian_yxbt():
     np_yxbt = rng.random(dtype=da.float32, size=(NY, NX, NB, NT))
     yxbt = da.from_array(np_yxbt, chunks=(100, 101, -1, -1))
 
-    xcoords = list(range(0, NX*5, 5))
-    ycoords = list(range(0, NY*5, 5))
+    xcoords = list(range(0, NX * 5, 5))
+    ycoords = list(range(0, NY * 5, 5))
     tcoords = [
         np.datetime64("2023-04-07"),
         np.datetime64("2023-04-08"),
         np.datetime64("2023-04-09"),
     ]
     bcoords = ["b1", "b2", "b3", "b4", "b5"]
-    src = DataArray(yxbt,
-                    coords={"x": xcoords, "y": ycoords, "time": tcoords, "band": bcoords},
-                    dims=["y", "x", "band", "time"])
+    src = DataArray(
+        yxbt,
+        coords={"x": xcoords, "y": ycoords, "time": tcoords, "band": bcoords},
+        dims=["y", "x", "band", "time"],
+    )
     result = geomedian_with_mads(src)
     assert dask.is_dask_collection(result)
     computed_result = result.compute()
@@ -43,8 +44,8 @@ def test_geomedian_yxbt():
 def test_geomedian_dataset():
     NT, NY, NX = 3, 1000, 2000
 
-    xcoords = list(range(0, NX*5, 5))
-    ycoords = list(range(0, NY*5, 5))
+    xcoords = list(range(0, NX * 5, 5))
+    ycoords = list(range(0, NY * 5, 5))
     tcoords = [
         np.datetime64("2023-04-07"),
         np.datetime64("2023-04-08"),
@@ -52,26 +53,41 @@ def test_geomedian_dataset():
     ]
 
     rng = np.random.default_rng()
-    b1 = DataArray(da.from_array(rng.random(dtype=da.float32, size=(NT, NY, NX)), chunks=(1, 100, 101)),
-                   coords={"x": xcoords, "y": ycoords, "time": tcoords},
-                   dims= ["time", "y", "x"]
-                   )
-    b2 = DataArray(da.from_array(rng.random(dtype=da.float32, size=(NT, NY, NX)), chunks=(1, 100, 101)),
-                   coords={"x": xcoords, "y": ycoords, "time": tcoords},
-                   dims=["time", "y", "x"]
-                   )
-    b3 = DataArray(da.from_array(rng.random(dtype=da.float32, size=(NT, NY, NX)), chunks=(1, 100, 101)),
-                   coords={"x": xcoords, "y": ycoords, "time": tcoords},
-                   dims=["time", "y", "x"]
-                   )
-    b4 = DataArray(da.from_array(rng.random(dtype=da.float32, size=(NT, NY, NX)), chunks=(1, 100, 101)),
-                   coords={"x": xcoords, "y": ycoords, "time": tcoords},
-                   dims=["time", "y", "x"]
-                   )
-    b5 = DataArray(da.from_array(rng.random(dtype=da.float32, size=(NT, NY, NX)), chunks=(1, 100, 101)),
-                   coords={"x": xcoords, "y": ycoords, "time": tcoords},
-                   dims=["time", "y", "x"]
-                   )
+    b1 = DataArray(
+        da.from_array(
+            rng.random(dtype=da.float32, size=(NT, NY, NX)), chunks=(1, 100, 101)
+        ),
+        coords={"x": xcoords, "y": ycoords, "time": tcoords},
+        dims=["time", "y", "x"],
+    )
+    b2 = DataArray(
+        da.from_array(
+            rng.random(dtype=da.float32, size=(NT, NY, NX)), chunks=(1, 100, 101)
+        ),
+        coords={"x": xcoords, "y": ycoords, "time": tcoords},
+        dims=["time", "y", "x"],
+    )
+    b3 = DataArray(
+        da.from_array(
+            rng.random(dtype=da.float32, size=(NT, NY, NX)), chunks=(1, 100, 101)
+        ),
+        coords={"x": xcoords, "y": ycoords, "time": tcoords},
+        dims=["time", "y", "x"],
+    )
+    b4 = DataArray(
+        da.from_array(
+            rng.random(dtype=da.float32, size=(NT, NY, NX)), chunks=(1, 100, 101)
+        ),
+        coords={"x": xcoords, "y": ycoords, "time": tcoords},
+        dims=["time", "y", "x"],
+    )
+    b5 = DataArray(
+        da.from_array(
+            rng.random(dtype=da.float32, size=(NT, NY, NX)), chunks=(1, 100, 101)
+        ),
+        coords={"x": xcoords, "y": ycoords, "time": tcoords},
+        dims=["time", "y", "x"],
+    )
 
     src = Dataset(
         data_vars={
@@ -81,7 +97,7 @@ def test_geomedian_dataset():
             "b4": b4,
             "b5": b5,
         },
-        coords={"x": xcoords, "y": ycoords, "time": tcoords}
+        coords={"x": xcoords, "y": ycoords, "time": tcoords},
     )
     result = geomedian_with_mads(src)
     assert dask.is_dask_collection(result)
@@ -96,13 +112,10 @@ def test_geomedian_dataset():
 
 # @pytest.mark.skip
 def test_geomedian_mem():
-
     import time
+
     client = dask.distributed.Client(
-        n_workers=1,
-        threads_per_worker=1,
-        memory_limit=25769803776,
-        processes=False
+        n_workers=1, threads_per_worker=1, memory_limit=25769803776, processes=False
     )
     # Sleep long enough to start dask console
     time.sleep(8)
@@ -114,8 +127,8 @@ def test_geomedian_mem():
     NB = 6
     work_chunks = (400, 400)
 
-    xcoords = list(range(0, NX*5, 5))
-    ycoords = list(range(0, NY*5, 5))
+    xcoords = list(range(0, NX * 5, 5))
+    ycoords = list(range(0, NY * 5, 5))
     tcoords = [
         np.datetime64("2023-04-07"),
         np.datetime64("2023-04-08"),
@@ -134,30 +147,48 @@ def test_geomedian_mem():
     ][:NT]
 
     rng = np.random.default_rng()
-    b1 = DataArray(da.from_array(rng.random(dtype=da.float32, size=(NT, NY, NX)), chunks=(1, 400, 400)),
-                   coords={"x": xcoords, "y": ycoords, "time": tcoords},
-                   dims= ["time", "y", "x"]
+    b1 = DataArray(
+        da.from_array(
+            rng.random(dtype=da.float32, size=(NT, NY, NX)), chunks=(1, 400, 400)
+        ),
+        coords={"x": xcoords, "y": ycoords, "time": tcoords},
+        dims=["time", "y", "x"],
     )
-    b2 = DataArray(da.from_array(rng.random(dtype=da.float32, size=(NT, NY, NX)), chunks=(1, 400, 400)),
-                   coords={"x": xcoords, "y": ycoords, "time": tcoords},
-                   dims=["time", "y", "x"]
-                   )
-    b3 = DataArray(da.from_array(rng.random(dtype=da.float32, size=(NT, NY, NX)), chunks=(1, 400, 400)),
-                   coords={"x": xcoords, "y": ycoords, "time": tcoords},
-                   dims=["time", "y", "x"]
-                   )
-    b4 = DataArray(da.from_array(rng.random(dtype=da.float32, size=(NT, NY, NX)), chunks=(1, 400, 400)),
-                   coords={"x": xcoords, "y": ycoords, "time": tcoords},
-                   dims=["time", "y", "x"]
-                   )
-    b5 = DataArray(da.from_array(rng.random(dtype=da.float32, size=(NT, NY, NX)), chunks=(1, 400, 400)),
-                   coords={"x": xcoords, "y": ycoords, "time": tcoords},
-                   dims=["time", "y", "x"]
-                   )
-    b6 = DataArray(da.from_array(rng.random(dtype=da.float32, size=(NT, NY, NX)), chunks=(1, 400, 400)),
-                   coords={"x": xcoords, "y": ycoords, "time": tcoords},
-                   dims=["time", "y", "x"]
-                   )
+    b2 = DataArray(
+        da.from_array(
+            rng.random(dtype=da.float32, size=(NT, NY, NX)), chunks=(1, 400, 400)
+        ),
+        coords={"x": xcoords, "y": ycoords, "time": tcoords},
+        dims=["time", "y", "x"],
+    )
+    b3 = DataArray(
+        da.from_array(
+            rng.random(dtype=da.float32, size=(NT, NY, NX)), chunks=(1, 400, 400)
+        ),
+        coords={"x": xcoords, "y": ycoords, "time": tcoords},
+        dims=["time", "y", "x"],
+    )
+    b4 = DataArray(
+        da.from_array(
+            rng.random(dtype=da.float32, size=(NT, NY, NX)), chunks=(1, 400, 400)
+        ),
+        coords={"x": xcoords, "y": ycoords, "time": tcoords},
+        dims=["time", "y", "x"],
+    )
+    b5 = DataArray(
+        da.from_array(
+            rng.random(dtype=da.float32, size=(NT, NY, NX)), chunks=(1, 400, 400)
+        ),
+        coords={"x": xcoords, "y": ycoords, "time": tcoords},
+        dims=["time", "y", "x"],
+    )
+    b6 = DataArray(
+        da.from_array(
+            rng.random(dtype=da.float32, size=(NT, NY, NX)), chunks=(1, 400, 400)
+        ),
+        coords={"x": xcoords, "y": ycoords, "time": tcoords},
+        dims=["time", "y", "x"],
+    )
 
     src = Dataset(
         data_vars={
@@ -168,9 +199,15 @@ def test_geomedian_mem():
             "b5": b5,
             "b6": b6,
         },
-        coords={"x": xcoords, "y": ycoords, "time": tcoords}
+        coords={"x": xcoords, "y": ycoords, "time": tcoords},
     )
-    result = geomedian_with_mads(src, max_iters=2000, num_threads=1, out_chunks=(-1, -1, -1), work_chunks=work_chunks)
+    result = geomedian_with_mads(
+        src,
+        max_iters=2000,
+        num_threads=1,
+        out_chunks=(-1, -1, -1),
+        work_chunks=work_chunks,
+    )
     assert dask.is_dask_collection(result)
     running_result = client.compute(result)
     for dt, _ in wait_for_future(running_result, 100):

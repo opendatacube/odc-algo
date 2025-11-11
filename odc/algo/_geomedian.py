@@ -212,7 +212,6 @@ def int_geomedian(ds, scale=1, offset=0, wk_rows=-1, as_array=False, **kw):
             ds = ds.chunk(chunks={xx.dims[0]: -1})
             xx, *_ = ds.data_vars.values()
 
-    nt, ny, nx = xx.shape
     bands = [dv.data for dv in ds.data_vars.values()]
     band = bands[0]
     nb = len(bands)

@@ -11,9 +11,9 @@ license = "Apache-2.0"
 requires-python = ">=3.10"
 dependencies = [
     "affine",
-    "dask",
+    "dask<=2025.3.0",
     "dask-image",
-    "distributed",
+    "distributed<=2025.3.0",
     "geomad",
     "numexpr",
     "numpy",

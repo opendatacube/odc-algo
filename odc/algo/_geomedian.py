@@ -411,7 +411,7 @@ def geomedian_with_mads(
                 f"Reshape strategy '{reshape_strategy}' not understood use one of: mem or yxbt"
             )
 
-    ny, nx, nb, nt = yxbt.shape
+    ny, nx, nb, _ = yxbt.shape
     nodata = yxbt.attrs.get("nodata", None)
     assert yxbt.chunks is not None
     if yxbt.data.numblocks[2:4] != (1, 1):

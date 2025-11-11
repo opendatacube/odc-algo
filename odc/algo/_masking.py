@@ -670,7 +670,7 @@ def _da_fuse_with_custom_op(xx: da.Array, op, name="fuse") -> da.Array:
         slices = [xx[i : i + 1] for i in range(xx.shape[0])]
         return da.map_blocks(op, *slices, name=name)
 
-    chunks, shapes = _get_chunks_asarray(xx)
+    chunks, _ = _get_chunks_asarray(xx)
     dsk = {}
     name = randomize(name)
     for idx in np.ndindex(chunks.shape[1:]):

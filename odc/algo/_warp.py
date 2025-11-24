@@ -8,7 +8,6 @@ from typing import TYPE_CHECKING
 
 import numpy as np
 from affine import Affine
-
 from odc.geo.warp import rio_warp_affine as warp_affine
 
 from ._numeric import shape_shrink2

@@ -383,7 +383,6 @@ class COGSink:
     def dump_to_s3(self, url, creds=None, **kw):
         import boto3
         from boto3.s3.transfer import TransferConfig
-
         from odc.aws import s3_url_parse
 
         assert self._mem is not None

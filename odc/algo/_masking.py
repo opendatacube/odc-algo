@@ -399,7 +399,9 @@ def xr_apply_morph_op(
     assert dask.is_dask_collection(xx.data)
     assert operation in ops
 
-    kernel = _disk(radius, xx.ndim, decomposition=None) # ndmorph only supports full structuring elements
+    kernel = _disk(
+        radius, xx.ndim, decomposition=None
+    )  # ndmorph only supports full structuring elements
     data = ops[operation](xx.data, kernel, **kw)
 
     return xr.DataArray(data=data, coords=xx.coords, dims=xx.dims, attrs=xx.attrs)

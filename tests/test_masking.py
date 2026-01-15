@@ -635,25 +635,19 @@ def test_binary_operations_with_coords():
 def test_binary_operations_edge_cases():
     """Test binary operations with edge case inputs."""
     # All False mask
-    mask_all_false = xr.DataArray(
-        np.zeros((3, 3), dtype=bool), dims=("y", "x")
-    )
+    mask_all_false = xr.DataArray(np.zeros((3, 3), dtype=bool), dims=("y", "x"))
     result = binary_erosion(mask_all_false)
     assert result.dtype == bool
     assert not result.any()
 
     # All True mask
-    mask_all_true = xr.DataArray(
-        np.ones((3, 3), dtype=bool), dims=("y", "x")
-    )
+    mask_all_true = xr.DataArray(np.ones((3, 3), dtype=bool), dims=("y", "x"))
     result = binary_dilation(mask_all_true)
     assert result.dtype == bool
     assert result.all()
 
     # Single pixel mask
-    mask_single = xr.DataArray(
-        np.array([[True]], dtype=bool), dims=("y", "x")
-    )
+    mask_single = xr.DataArray(np.array([[True]], dtype=bool), dims=("y", "x"))
     for func in [binary_erosion, binary_dilation, binary_opening, binary_closing]:
         result = func(mask_single)
         assert isinstance(result, xr.DataArray)

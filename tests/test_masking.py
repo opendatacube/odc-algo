@@ -17,6 +17,8 @@ from odc.algo._masking import (
     fmask_to_bool,
     gap_fill,
     mask_cleanup_np,
+    _disk,
+    expand_dims,
 )
 
 
@@ -279,3 +281,72 @@ def test_mask_cleanup_np():
     invalid_mask_filter = [("oppening", 1), ("dilation", 1)]
     with pytest.raises(ValueError):
         mask_cleanup_np(mask, invalid_mask_filter)
+
+
+def test_disk():
+    # Test radius=1, 2D kernel (plus/cross pattern)
+    result = _disk(1, 2)
+    expected_result = np.array(
+        [[False, True, False],
+         [True,  True, True],
+         [False, True, False]],
+    )
+    assert (result == expected_result).all()
+    assert result.ndim == expected_result.ndim
+    assert result.shape == (3, 3)
+
+    # Test radius=0 (single pixel)
+    result = _disk(0, 2)
+    expected_result = np.array([[True]])
+    assert (result == expected_result).all()
+    assert result.shape == (1, 1)
+
+    # Test radius=2, 2D kernel (larger disk)
+    result = _disk(2, 2)
+    assert result.ndim == 2
+    assert result.shape == (5, 5)
+    # Center should always be True
+    assert result[2, 2] is True or result[2, 2] == True
+    # Corners should be False for disk of radius 2
+    assert not result[0, 0]
+    assert not result[0, 4]
+    assert not result[4, 0]
+    assert not result[4, 4]
+
+    # Test 3D kernel
+    result = _disk(1, 3)
+    assert result.ndim == 3
+    # Center should be True
+    center = tuple(s // 2 for s in result.shape)
+    assert result[center] is True or result[center] == True
+
+    # Test with decomposition='sequence' returns tuple format
+    result = _disk(1, 2, decomposition='sequence')
+    assert isinstance(result, tuple)
+    assert len(result) > 0
+    # Each element should be a tuple of (array, count)
+    for arr, count in result:
+        assert isinstance(arr, np.ndarray)
+        assert isinstance(count, int)
+        assert arr.ndim == 2
+
+    # Test with decomposition='crosses' returns tuple format
+    result = _disk(1, 2, decomposition='crosses')
+    assert isinstance(result, tuple)
+    assert len(result) > 0
+    # Each element should be a tuple of (array, count)
+    for arr, count in result:
+        assert isinstance(arr, np.ndarray)
+        assert isinstance(count, int)
+        assert arr.ndim == 2
+
+    # Test 3D with decomposition
+    result = _disk(1, 3, decomposition='sequence')
+    assert isinstance(result, tuple)
+    for arr, count in result:
+        assert isinstance(arr, np.ndarray)
+        assert arr.ndim == 3
+        assert isinstance(count, int)
+
+
+

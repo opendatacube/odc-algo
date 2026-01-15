@@ -10,7 +10,7 @@ Also converting between float[with nans] and int[with nodata].
 from __future__ import annotations
 
 from functools import partial
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Literal
 
 import dask
 import dask.array as da
@@ -340,18 +340,41 @@ def _enum_to_mask_numexpr(
     return out
 
 
+def expand_dims(arr: np.ndarray, ndim: int = 2) -> np.ndarray:
+    while arr.ndim < ndim:
+        arr = arr[np.newaxis]
+    return arr
+
+
 # pylint: disable=import-outside-toplevel
-def _disk(r: int, ndim: int = 2) -> np.ndarray:
+def _disk(r: int, ndim: int = 2, decomposition: Literal['sequence', 'crosses'] | None = None) -> np.ndarray | tuple[tuple[np.ndarray, int], ...]:
+    """
+    Generates a kernel for use with skimage.morphology functions.
+    
+    :param r: The radius of the disk-shaped footprint.
+    :type r: int
+    :param ndim: Number of dimensions the output array should have.
+    :type ndim: int
+    :param decomposition: See https://scikit-image.org/docs/stable/api/skimage.morphology.html#skimage.morphology.disk
+    :type decomposition: Literal['sequence', 'crosses'] | None
+    :return: A kernel suitable for use with skimage.morphology functions such as erosion.
+    :rtype: np.ndarray | tuple[tuple[np.ndarray, int], ...]
+    """
     from skimage.morphology import disk
 
-    kernel = disk(r)
-    while kernel.ndim < ndim:
-        kernel = kernel[np.newaxis]
+    kernel = disk(r, decomposition=decomposition)
+    if decomposition is None:
+        # disk is a 2D array, which we reshape to the required dimensionality
+        kernel = expand_dims(kernel, ndim)
+    else:
+        # kernel is of type [(np.array, int), ...]
+        # Reshape each array to the required dimensionality
+        kernel = tuple((expand_dims(arr, ndim), count) for arr, count in kernel)
     return kernel
 
 
 def xr_apply_morph_op(
-    xx: xr.DataArray, operation: str, radius: int = 1, **kw
+    xx: xr.DataArray, operation: str, radius: int = 1, decomposition: Literal['sequence', 'crosses'] | None = None, **kw
 ) -> xr.DataArray:
     """
     Apply morphological operation to Dask based xarray Array
@@ -371,31 +394,32 @@ def xr_apply_morph_op(
     assert dask.is_dask_collection(xx.data)
     assert operation in ops
 
-    kernel = _disk(radius, xx.ndim)
+    kernel = _disk(radius, xx.ndim, decomposition=decomposition)
     data = ops[operation](xx.data, kernel, **kw)
 
     return xr.DataArray(data=data, coords=xx.coords, dims=xx.dims, attrs=xx.attrs)
 
 
-def binary_erosion(xx: xr.DataArray, radius: int = 1, **kw) -> xr.DataArray:
-    return xr_apply_morph_op(xx, "erosion", radius, **kw)
+def binary_erosion(xx: xr.DataArray, radius: int = 1, decomposition: Literal['sequence', 'crosses'] | None = None, **kw) -> xr.DataArray:
+    return xr_apply_morph_op(xx, "erosion", radius, decomposition=decomposition, **kw)
 
 
-def binary_dilation(xx: xr.DataArray, radius: int = 1, **kw) -> xr.DataArray:
-    return xr_apply_morph_op(xx, "dilation", radius, **kw)
+def binary_dilation(xx: xr.DataArray, radius: int = 1, decomposition: Literal['sequence', 'crosses'] | None = None, **kw) -> xr.DataArray:
+    return xr_apply_morph_op(xx, "dilation", radius, decomposition=decomposition, **kw)
 
 
-def binary_opening(xx: xr.DataArray, radius: int = 1, **kw) -> xr.DataArray:
-    return xr_apply_morph_op(xx, "opening", radius, **kw)
+def binary_opening(xx: xr.DataArray, radius: int = 1, decomposition: Literal['sequence', 'crosses'] | None = None, **kw) -> xr.DataArray:
+    return xr_apply_morph_op(xx, "opening", radius, decomposition=decomposition, **kw)
 
 
-def binary_closing(xx: xr.DataArray, radius: int = 1, **kw) -> xr.DataArray:
-    return xr_apply_morph_op(xx, "closing", radius, **kw)
+def binary_closing(xx: xr.DataArray, radius: int = 1, decomposition: Literal['sequence', 'crosses'] | None = None, **kw) -> xr.DataArray:
+    return xr_apply_morph_op(xx, "closing", radius, decomposition=decomposition, **kw)
 
 
 def mask_cleanup_np(
     mask: np.ndarray,
     mask_filters: Iterable[tuple[str, int]] | None = None,
+    disk_decomposition: Literal['sequence', 'crosses'] | None = None,
 ) -> np.ndarray:
     """
     Apply morphological operations on given binary mask.
@@ -422,7 +446,7 @@ def mask_cleanup_np(
         if op is None:
             raise ValueError(f"Not supported morphological operation: {operation}")
         if radius > 0:
-            mask = op(mask, _disk(radius, mask.ndim))
+            mask = op(mask, _disk(radius, mask.ndim, decomposition=disk_decomposition))
     return mask
 
 
@@ -436,6 +460,7 @@ def mask_cleanup(
     mask: xr.DataArray,
     mask_filters: Iterable[tuple[str, int]] | None = None,
     name: str | None = None,
+    disk_decomposition: Literal['sequence', 'crosses'] | None = None,
 ) -> xr.DataArray:
     """
     Apply morphological operations on given binary mask.
@@ -454,6 +479,7 @@ def mask_cleanup(
                 erosion  = shrinks bright regions and enlarges dark regions
         radius: int
     :param name: Used when building Dask graphs
+    :param disk_decomposition: See https://scikit-image.org/docs/stable/api/skimage.morphology.html#skimage.morphology.disk
     """
     data = mask.data
 
@@ -475,9 +501,10 @@ def mask_cleanup(
             depth,
             boundary="none",
             name=randomize(name),
+            disk_decomposition=disk_decomposition,
         )
     else:
-        data = mask_cleanup_np(data, mask_filters=mask_filters)
+        data = mask_cleanup_np(data, mask_filters=mask_filters, disk_decomposition=disk_decomposition)
 
     return xr.DataArray(data, attrs=mask.attrs, coords=mask.coords, dims=mask.dims)
 

@@ -391,17 +391,21 @@ def xr_apply_morph_op(
     import dask_image.ndmorph
     import scipy.ndimage
 
-    ops = {
-        "dilation": dask_image.ndmorph.binary_dilation,
-        "erosion": dask_image.ndmorph.binary_erosion,
-        "opening": dask_image.ndmorph.binary_opening,
-        "closing": dask_image.ndmorph.binary_closing,
-    } if dask.is_dask_collection(xx.data) else {
-        "dilation": scipy.ndimage.binary_dilation,
-        "erosion": scipy.ndimage.binary_erosion,
-        "opening": scipy.ndimage.binary_opening,
-        "closing": scipy.ndimage.binary_closing,
-    }
+    ops = (
+        {
+            "dilation": dask_image.ndmorph.binary_dilation,
+            "erosion": dask_image.ndmorph.binary_erosion,
+            "opening": dask_image.ndmorph.binary_opening,
+            "closing": dask_image.ndmorph.binary_closing,
+        }
+        if dask.is_dask_collection(xx.data)
+        else {
+            "dilation": scipy.ndimage.binary_dilation,
+            "erosion": scipy.ndimage.binary_erosion,
+            "opening": scipy.ndimage.binary_opening,
+            "closing": scipy.ndimage.binary_closing,
+        }
+    )
     assert operation in ops
 
     kernel = _disk(

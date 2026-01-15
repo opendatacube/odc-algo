@@ -347,10 +347,12 @@ def expand_dims(arr: np.ndarray, ndim: int = 2) -> np.ndarray:
 
 
 # pylint: disable=import-outside-toplevel
-def _disk(r: int, ndim: int = 2, decomposition: Literal['sequence', 'crosses'] | None = None) -> np.ndarray | tuple[tuple[np.ndarray, int], ...]:
+def _disk(
+    r: int, ndim: int = 2, decomposition: Literal["sequence", "crosses"] | None = None
+) -> np.ndarray | tuple[tuple[np.ndarray, int], ...]:
     """
     Generates a kernel for use with skimage.morphology functions.
-    
+
     :param r: The radius of the disk-shaped footprint.
     :type r: int
     :param ndim: Number of dimensions the output array should have.
@@ -374,7 +376,11 @@ def _disk(r: int, ndim: int = 2, decomposition: Literal['sequence', 'crosses'] |
 
 
 def xr_apply_morph_op(
-    xx: xr.DataArray, operation: str, radius: int = 1, decomposition: Literal['sequence', 'crosses'] | None = None, **kw
+    xx: xr.DataArray,
+    operation: str,
+    radius: int = 1,
+    decomposition: Literal["sequence", "crosses"] | None = None,
+    **kw,
 ) -> xr.DataArray:
     """
     Apply morphological operation to Dask based xarray Array
@@ -400,26 +406,46 @@ def xr_apply_morph_op(
     return xr.DataArray(data=data, coords=xx.coords, dims=xx.dims, attrs=xx.attrs)
 
 
-def binary_erosion(xx: xr.DataArray, radius: int = 1, decomposition: Literal['sequence', 'crosses'] | None = None, **kw) -> xr.DataArray:
+def binary_erosion(
+    xx: xr.DataArray,
+    radius: int = 1,
+    decomposition: Literal["sequence", "crosses"] | None = None,
+    **kw,
+) -> xr.DataArray:
     return xr_apply_morph_op(xx, "erosion", radius, decomposition=decomposition, **kw)
 
 
-def binary_dilation(xx: xr.DataArray, radius: int = 1, decomposition: Literal['sequence', 'crosses'] | None = None, **kw) -> xr.DataArray:
+def binary_dilation(
+    xx: xr.DataArray,
+    radius: int = 1,
+    decomposition: Literal["sequence", "crosses"] | None = None,
+    **kw,
+) -> xr.DataArray:
     return xr_apply_morph_op(xx, "dilation", radius, decomposition=decomposition, **kw)
 
 
-def binary_opening(xx: xr.DataArray, radius: int = 1, decomposition: Literal['sequence', 'crosses'] | None = None, **kw) -> xr.DataArray:
+def binary_opening(
+    xx: xr.DataArray,
+    radius: int = 1,
+    decomposition: Literal["sequence", "crosses"] | None = None,
+    **kw,
+) -> xr.DataArray:
     return xr_apply_morph_op(xx, "opening", radius, decomposition=decomposition, **kw)
 
 
-def binary_closing(xx: xr.DataArray, radius: int = 1, decomposition: Literal['sequence', 'crosses'] | None = None, **kw) -> xr.DataArray:
+def binary_closing(
+    xx: xr.DataArray,
+    radius: int = 1,
+    decomposition: Literal["sequence", "crosses"] | None = None,
+    **kw,
+) -> xr.DataArray:
     return xr_apply_morph_op(xx, "closing", radius, decomposition=decomposition, **kw)
 
 
 def mask_cleanup_np(
     mask: np.ndarray,
     mask_filters: Iterable[tuple[str, int]] | None = None,
-    disk_decomposition: Literal['sequence', 'crosses'] | None = None,
+    disk_decomposition: Literal["sequence", "crosses"] | None = None,
 ) -> np.ndarray:
     """
     Apply morphological operations on given binary mask.
@@ -460,7 +486,7 @@ def mask_cleanup(
     mask: xr.DataArray,
     mask_filters: Iterable[tuple[str, int]] | None = None,
     name: str | None = None,
-    disk_decomposition: Literal['sequence', 'crosses'] | None = None,
+    disk_decomposition: Literal["sequence", "crosses"] | None = None,
 ) -> xr.DataArray:
     """
     Apply morphological operations on given binary mask.
@@ -479,7 +505,7 @@ def mask_cleanup(
                 erosion  = shrinks bright regions and enlarges dark regions
     :param radius: int
     :param name: Used when building Dask graphs
-    :param disk_decomposition: The method used to decompose the disk structure element. 
+    :param disk_decomposition: The method used to decompose the disk structure element.
                 Use None for default behavior. "crosses" is around 3 times faster and approximates a disk well.
                 See https://scikit-image.org/docs/stable/api/skimage.morphology.html#skimage.morphology.disk
     """
@@ -506,7 +532,9 @@ def mask_cleanup(
             disk_decomposition=disk_decomposition,
         )
     else:
-        data = mask_cleanup_np(data, mask_filters=mask_filters, disk_decomposition=disk_decomposition)
+        data = mask_cleanup_np(
+            data, mask_filters=mask_filters, disk_decomposition=disk_decomposition
+        )
 
     return xr.DataArray(data, attrs=mask.attrs, coords=mask.coords, dims=mask.dims)
 

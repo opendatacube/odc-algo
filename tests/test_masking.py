@@ -9,6 +9,7 @@ import pytest
 import xarray as xr
 
 from odc.algo._masking import (
+    _disk,
     _enum_to_mask_numexpr,
     _fuse_mean_np,
     _gap_fill_np,
@@ -17,8 +18,6 @@ from odc.algo._masking import (
     fmask_to_bool,
     gap_fill,
     mask_cleanup_np,
-    _disk,
-    expand_dims,
 )
 
 
@@ -287,9 +286,7 @@ def test_disk():
     # Test radius=1, 2D kernel (plus/cross pattern)
     result = _disk(1, 2)
     expected_result = np.array(
-        [[False, True, False],
-         [True,  True, True],
-         [False, True, False]],
+        [[False, True, False], [True, True, True], [False, True, False]],
     )
     assert (result == expected_result).all()
     assert result.ndim == expected_result.ndim
@@ -321,7 +318,7 @@ def test_disk():
     assert result[center] is True or result[center] == True
 
     # Test with decomposition='sequence' returns tuple format
-    result = _disk(1, 2, decomposition='sequence')
+    result = _disk(1, 2, decomposition="sequence")
     assert isinstance(result, tuple)
     assert len(result) > 0
     # Each element should be a tuple of (array, count)
@@ -331,7 +328,7 @@ def test_disk():
         assert arr.ndim == 2
 
     # Test with decomposition='crosses' returns tuple format
-    result = _disk(1, 2, decomposition='crosses')
+    result = _disk(1, 2, decomposition="crosses")
     assert isinstance(result, tuple)
     assert len(result) > 0
     # Each element should be a tuple of (array, count)
@@ -341,12 +338,9 @@ def test_disk():
         assert arr.ndim == 2
 
     # Test 3D with decomposition
-    result = _disk(1, 3, decomposition='sequence')
+    result = _disk(1, 3, decomposition="sequence")
     assert isinstance(result, tuple)
     for arr, count in result:
         assert isinstance(arr, np.ndarray)
         assert arr.ndim == 3
         assert isinstance(count, int)
-
-
-

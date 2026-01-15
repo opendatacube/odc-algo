@@ -458,11 +458,6 @@ def test_binary_erosion():
     assert isinstance(result, xr.DataArray)
     assert result.dtype == bool
 
-    # Test with decomposition
-    result = binary_erosion(mask, radius=1, decomposition="sequence")
-    assert isinstance(result, xr.DataArray)
-    assert result.dtype == bool
-
     # Test with dask array
     mask_dask = xr.DataArray(da.from_array(mask_data, chunks=(2, 2)), dims=("y", "x"))
     result = binary_erosion(mask_dask, radius=1)
@@ -493,11 +488,6 @@ def test_binary_dilation():
     assert isinstance(result, xr.DataArray)
     assert result.dtype == bool
 
-    # Test with decomposition
-    result = binary_dilation(mask, radius=1, decomposition="crosses")
-    assert isinstance(result, xr.DataArray)
-    assert result.dtype == bool
-
     # Test with dask array
     mask_dask = xr.DataArray(da.from_array(mask_data, chunks=(2, 2)), dims=("y", "x"))
     result = binary_dilation(mask_dask, radius=1)
@@ -524,11 +514,6 @@ def test_binary_opening():
 
     # Test with larger radius
     result = binary_opening(mask, radius=2)
-    assert isinstance(result, xr.DataArray)
-    assert result.dtype == bool
-
-    # Test with decomposition
-    result = binary_opening(mask, radius=1, decomposition="sequence")
     assert isinstance(result, xr.DataArray)
     assert result.dtype == bool
 
@@ -574,11 +559,6 @@ def test_binary_closing():
 
     # Test with larger radius
     result = binary_closing(mask, radius=2)
-    assert isinstance(result, xr.DataArray)
-    assert result.dtype == bool
-
-    # Test with decomposition
-    result = binary_closing(mask, radius=1, decomposition="sequence")
     assert isinstance(result, xr.DataArray)
     assert result.dtype == bool
 

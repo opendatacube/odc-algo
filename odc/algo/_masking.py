@@ -379,7 +379,6 @@ def xr_apply_morph_op(
     xx: xr.DataArray,
     operation: str,
     radius: int = 1,
-    decomposition: Literal["sequence", "crosses"] | None = None,
     **kw,
 ) -> xr.DataArray:
     """
@@ -400,7 +399,7 @@ def xr_apply_morph_op(
     assert dask.is_dask_collection(xx.data)
     assert operation in ops
 
-    kernel = _disk(radius, xx.ndim, decomposition=decomposition)
+    kernel = _disk(radius, xx.ndim, decomposition=None) # ndmorph only supports full structuring elements
     data = ops[operation](xx.data, kernel, **kw)
 
     return xr.DataArray(data=data, coords=xx.coords, dims=xx.dims, attrs=xx.attrs)
@@ -409,37 +408,33 @@ def xr_apply_morph_op(
 def binary_erosion(
     xx: xr.DataArray,
     radius: int = 1,
-    decomposition: Literal["sequence", "crosses"] | None = None,
     **kw,
 ) -> xr.DataArray:
-    return xr_apply_morph_op(xx, "erosion", radius, decomposition=decomposition, **kw)
+    return xr_apply_morph_op(xx, "erosion", radius, **kw)
 
 
 def binary_dilation(
     xx: xr.DataArray,
     radius: int = 1,
-    decomposition: Literal["sequence", "crosses"] | None = None,
     **kw,
 ) -> xr.DataArray:
-    return xr_apply_morph_op(xx, "dilation", radius, decomposition=decomposition, **kw)
+    return xr_apply_morph_op(xx, "dilation", radius, **kw)
 
 
 def binary_opening(
     xx: xr.DataArray,
     radius: int = 1,
-    decomposition: Literal["sequence", "crosses"] | None = None,
     **kw,
 ) -> xr.DataArray:
-    return xr_apply_morph_op(xx, "opening", radius, decomposition=decomposition, **kw)
+    return xr_apply_morph_op(xx, "opening", radius, **kw)
 
 
 def binary_closing(
     xx: xr.DataArray,
     radius: int = 1,
-    decomposition: Literal["sequence", "crosses"] | None = None,
     **kw,
 ) -> xr.DataArray:
-    return xr_apply_morph_op(xx, "closing", radius, decomposition=decomposition, **kw)
+    return xr_apply_morph_op(xx, "closing", radius, **kw)
 
 
 def mask_cleanup_np(

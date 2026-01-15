@@ -477,9 +477,11 @@ def mask_cleanup(
                 opening  = shrinks away small areas of the mask
                 dilation = adds padding to the mask
                 erosion  = shrinks bright regions and enlarges dark regions
-        radius: int
+    :param radius: int
     :param name: Used when building Dask graphs
-    :param disk_decomposition: See https://scikit-image.org/docs/stable/api/skimage.morphology.html#skimage.morphology.disk
+    :param disk_decomposition: The method used to decompose the disk structure element. 
+                Use None for default behavior. "crosses" is around 3 times faster and approximates a disk well.
+                See https://scikit-image.org/docs/stable/api/skimage.morphology.html#skimage.morphology.disk
     """
     data = mask.data
 

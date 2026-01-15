@@ -17,6 +17,7 @@ from odc.algo._masking import (
     enum_to_bool,
     fmask_to_bool,
     gap_fill,
+    mask_cleanup,
     mask_cleanup_np,
 )
 
@@ -344,3 +345,88 @@ def test_disk():
         assert isinstance(arr, np.ndarray)
         assert arr.ndim == 3
         assert isinstance(count, int)
+
+
+def test_mask_cleanup():
+    """Test mask_cleanup function with xarray.DataArray inputs."""
+    # Create a simple binary mask as xarray DataArray
+    mask_data = np.array(
+        [[True, False, True], [False, True, False], [True, False, True]],
+        dtype=bool,
+    )
+    mask = xr.DataArray(mask_data, dims=("y", "x"), name="test_mask")
+
+    # Test with default mask_filters (opening=2, dilation=5)
+    result = mask_cleanup(mask)
+    assert isinstance(result, xr.DataArray)
+    assert result.dims == mask.dims
+
+    # Test with custom mask_filters
+    result = mask_cleanup(mask, mask_filters=[("opening", 1)])
+    assert isinstance(result, xr.DataArray)
+    assert result.dims == mask.dims
+
+    # Test with empty mask_filters list
+    result = mask_cleanup(mask, mask_filters=[])
+    assert isinstance(result, xr.DataArray)
+    assert result.dims == mask.dims
+
+    # Test with custom name parameter
+    result = mask_cleanup(mask, name="custom_cleanup")
+    assert isinstance(result, xr.DataArray)
+
+    # Test with closing operation
+    result = mask_cleanup(mask, mask_filters=[("closing", 1)])
+    assert isinstance(result, xr.DataArray)
+    assert result.dims == mask.dims
+
+    # Test with dilation operation
+    result = mask_cleanup(mask, mask_filters=[("dilation", 1)])
+    assert isinstance(result, xr.DataArray)
+    assert result.dims == mask.dims
+
+    # Test with erosion operation
+    result = mask_cleanup(mask, mask_filters=[("erosion", 1)])
+    assert isinstance(result, xr.DataArray)
+    assert result.dims == mask.dims
+
+    # Test with multiple operations
+    result = mask_cleanup(
+        mask, mask_filters=[("opening", 1), ("dilation", 1), ("closing", 1)]
+    )
+    assert isinstance(result, xr.DataArray)
+    assert result.dims == mask.dims
+
+    # Test with dask array
+    mask_dask = xr.DataArray(
+        da.from_array(mask_data, chunks=(2, 2)), dims=("y", "x"), name="dask_mask"
+    )
+    result = mask_cleanup(mask_dask, mask_filters=[("opening", 1)])
+    assert isinstance(result, xr.DataArray)
+    # Compute result to verify it works with dask
+    result_computed = result.compute()
+    assert result_computed.dims == ("y", "x")
+
+    # Test coordinates are preserved
+    mask_with_coords = xr.DataArray(
+        mask_data,
+        dims=("y", "x"),
+        coords={"y": np.arange(3), "x": np.arange(3)},
+    )
+    result = mask_cleanup(mask_with_coords, mask_filters=[("opening", 1)])
+    assert result.dims == mask_with_coords.dims
+    assert "y" in result.coords
+    assert "x" in result.coords
+
+    # Test with 3D data (time, y, x)
+    mask_3d = np.array(
+        [
+            [[True, False], [False, True]],
+            [[False, True], [True, False]],
+        ],
+        dtype=bool,
+    )
+    mask_3d_da = xr.DataArray(mask_3d, dims=("time", "y", "x"))
+    result = mask_cleanup(mask_3d_da, mask_filters=[("opening", 1)])
+    assert isinstance(result, xr.DataArray)
+    assert result.ndim == 3

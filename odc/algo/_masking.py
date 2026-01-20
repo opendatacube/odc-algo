@@ -10,7 +10,7 @@ Also converting between float[with nans] and int[with nodata].
 from __future__ import annotations
 
 from functools import partial
-from typing import TYPE_CHECKING, Any, Literal
+from typing import TYPE_CHECKING, Any, Literal, TypeAlias
 
 import dask
 import dask.array as da
@@ -24,7 +24,7 @@ from ._dask import _get_chunks_asarray, randomize
 if TYPE_CHECKING:
     from collections.abc import Iterable
 
-MorphOp = Literal["dilation", "erosion", "opening", "closing"]
+MorphOp: TypeAlias = Literal["dilation", "erosion", "opening", "closing"]
 
 
 def default_nodata(dtype):

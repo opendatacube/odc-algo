@@ -534,7 +534,11 @@ def mask_cleanup(
 
         # The filter kernel needs surrounding pixels, so map each dask block with enough overlap
         data = data.map_overlap(
-            partial(mask_cleanup_np, mask_filters=mask_filters, disk_decomposition=disk_decomposition),
+            partial(
+                mask_cleanup_np,
+                mask_filters=mask_filters,
+                disk_decomposition=disk_decomposition,
+            ),
             depth=depth,
             boundary="none",
             name=randomize(name),

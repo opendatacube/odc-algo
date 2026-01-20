@@ -24,6 +24,8 @@ from ._dask import _get_chunks_asarray, randomize
 if TYPE_CHECKING:
     from collections.abc import Iterable
 
+MorphOp = Literal["dilation", "erosion", "opening", "closing"]
+
 
 def default_nodata(dtype):
     """Default `nodata` for a given dtype
@@ -377,7 +379,7 @@ def _disk(
 
 def xr_apply_morph_op(
     xx: xr.DataArray,
-    operation: str,
+    operation: MorphOp,
     radius: int = 1,
     **kw,
 ) -> xr.DataArray:
@@ -410,7 +412,7 @@ def xr_apply_morph_op(
 
     kernel = _disk(
         radius, xx.ndim, decomposition=None
-    )  # ndmorph only supports full structuring elements
+    )  # ndmorph only supports arrays, not sequences
     data = ops[operation](xx.data, kernel, **kw)
 
     return xr.DataArray(data=data, coords=xx.coords, dims=xx.dims, attrs=xx.attrs)
@@ -450,7 +452,7 @@ def binary_closing(
 
 def mask_cleanup_np(
     mask: np.ndarray,
-    mask_filters: Iterable[tuple[str, int]] | None = None,
+    mask_filters: Iterable[tuple[MorphOp, int]] | None = None,
     disk_decomposition: Literal["sequence", "crosses"] | None = None,
 ) -> np.ndarray:
     """
@@ -490,7 +492,7 @@ def _compute_overlap_depth(r: Iterable[int], ndim: int) -> tuple[int, ...]:
 
 def mask_cleanup(
     mask: xr.DataArray,
-    mask_filters: Iterable[tuple[str, int]] | None = None,
+    mask_filters: Iterable[tuple[MorphOp, int]] | None = None,
     name: str | None = None,
     disk_decomposition: Literal["sequence", "crosses"] | None = None,
 ) -> xr.DataArray:
@@ -530,12 +532,12 @@ def mask_cleanup(
             for radius in rr:
                 name = name + f"_{radius}"
 
+        # The filter kernel needs surrounding pixels, so map each dask block with enough overlap
         data = data.map_overlap(
-            partial(mask_cleanup_np, mask_filters=mask_filters),
-            depth,
+            partial(mask_cleanup_np, mask_filters=mask_filters, disk_decomposition=disk_decomposition),
+            depth=depth,
             boundary="none",
             name=randomize(name),
-            disk_decomposition=disk_decomposition,
         )
     else:
         data = mask_cleanup_np(

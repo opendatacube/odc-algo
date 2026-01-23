@@ -412,7 +412,7 @@ def xr_apply_morph_op(
 
     kernel = _disk(
         radius, xx.ndim, decomposition=None
-    )  # ndmorph only supports arrays, not sequences
+    )  # ndmorph only supports arrays, not 'sequence' or 'crosses'
     data = ops[operation](xx.data, kernel, **kw)
 
     return xr.DataArray(data=data, coords=xx.coords, dims=xx.dims, attrs=xx.attrs)

@@ -9,13 +9,19 @@ import pytest
 import xarray as xr
 
 from odc.algo._masking import (
+    _disk,
     _enum_to_mask_numexpr,
     _fuse_mean_np,
     _gap_fill_np,
     _get_enum_values,
+    binary_closing,
+    binary_dilation,
+    binary_erosion,
+    binary_opening,
     enum_to_bool,
     fmask_to_bool,
     gap_fill,
+    mask_cleanup,
     mask_cleanup_np,
 )
 
@@ -279,3 +285,350 @@ def test_mask_cleanup_np():
     invalid_mask_filter = [("oppening", 1), ("dilation", 1)]
     with pytest.raises(ValueError):
         mask_cleanup_np(mask, invalid_mask_filter)
+
+
+def test_disk():
+    # Test radius=1, 2D kernel (plus/cross pattern)
+    result = _disk(1, 2)
+    expected_result = np.array(
+        [[False, True, False], [True, True, True], [False, True, False]],
+    )
+    assert (result == expected_result).all()
+    assert result.ndim == expected_result.ndim
+    assert result.shape == (3, 3)
+
+    # Test radius=0 (single pixel)
+    result = _disk(0, 2)
+    expected_result = np.array([[True]])
+    assert (result == expected_result).all()
+    assert result.shape == (1, 1)
+
+    # Test radius=2, 2D kernel (larger disk)
+    result = _disk(2, 2)
+    assert result.ndim == 2
+    assert result.shape == (5, 5)
+    # Center should always be True
+    assert result[2, 2]
+    # Corners should be False for disk of radius 2
+    assert not result[0, 0]
+    assert not result[0, 4]
+    assert not result[4, 0]
+    assert not result[4, 4]
+
+    # Test 3D kernel
+    result = _disk(1, 3)
+    assert result.ndim == 3
+    # Center should be True
+    center = tuple(s // 2 for s in result.shape)
+    assert result[center]
+
+    # Test with decomposition='sequence' returns tuple format
+    result = _disk(1, 2, decomposition="sequence")
+    assert isinstance(result, tuple)
+    assert len(result) > 0
+    # Each element should be a tuple of (array, count)
+    for arr, count in result:
+        assert isinstance(arr, np.ndarray)
+        assert isinstance(count, int)
+        assert arr.ndim == 2
+
+    # Test with decomposition='crosses' returns tuple format
+    result = _disk(1, 2, decomposition="crosses")
+    assert isinstance(result, tuple)
+    assert len(result) > 0
+    # Each element should be a tuple of (array, count)
+    for arr, count in result:
+        assert isinstance(arr, np.ndarray)
+        assert isinstance(count, int)
+        assert arr.ndim == 2
+
+    # Test 3D with decomposition
+    result = _disk(1, 3, decomposition="sequence")
+    assert isinstance(result, tuple)
+    for arr, count in result:
+        assert isinstance(arr, np.ndarray)
+        assert arr.ndim == 3
+        assert isinstance(count, int)
+
+
+def test_mask_cleanup():
+    """Test mask_cleanup function with xarray.DataArray inputs."""
+    # Create a simple binary mask as xarray DataArray
+    mask_data = np.array(
+        [[True, False, True], [False, True, False], [True, False, True]],
+        dtype=bool,
+    )
+    mask = xr.DataArray(mask_data, dims=("y", "x"), name="test_mask")
+
+    # Test with default mask_filters (opening=2, dilation=5)
+    result = mask_cleanup(mask)
+    assert isinstance(result, xr.DataArray)
+    assert result.dims == mask.dims
+
+    # Test with custom mask_filters
+    result = mask_cleanup(mask, mask_filters=[("opening", 1)])
+    assert isinstance(result, xr.DataArray)
+    assert result.dims == mask.dims
+
+    # Test with empty mask_filters list
+    result = mask_cleanup(mask, mask_filters=[])
+    assert isinstance(result, xr.DataArray)
+    assert result.dims == mask.dims
+
+    # Test with custom name parameter
+    result = mask_cleanup(mask, name="custom_cleanup")
+    assert isinstance(result, xr.DataArray)
+
+    # Test with closing operation
+    result = mask_cleanup(mask, mask_filters=[("closing", 1)])
+    assert isinstance(result, xr.DataArray)
+    assert result.dims == mask.dims
+
+    # Test with dilation operation
+    result = mask_cleanup(mask, mask_filters=[("dilation", 1)])
+    assert isinstance(result, xr.DataArray)
+    assert result.dims == mask.dims
+
+    # Test with erosion operation
+    result = mask_cleanup(mask, mask_filters=[("erosion", 1)])
+    assert isinstance(result, xr.DataArray)
+    assert result.dims == mask.dims
+
+    # Test with multiple operations
+    result = mask_cleanup(
+        mask, mask_filters=[("opening", 1), ("dilation", 1), ("closing", 1)]
+    )
+    assert isinstance(result, xr.DataArray)
+    assert result.dims == mask.dims
+
+    # Test with dask array
+    mask_dask = xr.DataArray(
+        da.from_array(mask_data, chunks=(2, 2)), dims=("y", "x"), name="dask_mask"
+    )
+    result = mask_cleanup(mask_dask, mask_filters=[("opening", 1)])
+    assert isinstance(result, xr.DataArray)
+    # Compute result to verify it works with dask
+    result_computed = result.compute()
+    assert result_computed.dims == ("y", "x")
+
+    # Test coordinates are preserved
+    mask_with_coords = xr.DataArray(
+        mask_data,
+        dims=("y", "x"),
+        coords={"y": np.arange(3), "x": np.arange(3)},
+    )
+    result = mask_cleanup(mask_with_coords, mask_filters=[("opening", 1)])
+    assert result.dims == mask_with_coords.dims
+    assert "y" in result.coords
+    assert "x" in result.coords
+
+    # Test with 3D data (time, y, x)
+    mask_3d = np.array(
+        [
+            [[True, False], [False, True]],
+            [[False, True], [True, False]],
+        ],
+        dtype=bool,
+    )
+    mask_3d_da = xr.DataArray(mask_3d, dims=("time", "y", "x"))
+    result = mask_cleanup(mask_3d_da, mask_filters=[("opening", 1)])
+    assert isinstance(result, xr.DataArray)
+    assert result.ndim == 3
+
+
+def test_binary_erosion():
+    """Test binary_erosion function."""
+    # Create a simple binary mask
+    mask_data = np.array(
+        [[False, False, False], [False, True, False], [False, False, False]],
+        dtype=bool,
+    )
+    mask = xr.DataArray(mask_data, dims=("y", "x"))
+
+    # Test erosion with default radius=1
+    result = binary_erosion(mask)
+    assert isinstance(result, xr.DataArray)
+    assert result.dtype == bool
+    assert result.dims == mask.dims
+    # Erosion should shrink the bright region
+    assert result.sum() <= mask.sum()
+
+    # Test with larger radius
+    result = binary_erosion(mask, radius=2)
+    assert isinstance(result, xr.DataArray)
+    assert result.dtype == bool
+
+    # Test with dask array
+    mask_dask = xr.DataArray(da.from_array(mask_data, chunks=(2, 2)), dims=("y", "x"))
+    result = binary_erosion(mask_dask, radius=1)
+    assert isinstance(result, xr.DataArray)
+    result_computed = result.compute()
+    assert result_computed.dtype == bool
+
+
+def test_binary_dilation():
+    """Test binary_dilation function."""
+    # Create a simple binary mask
+    mask_data = np.array(
+        [[False, False, False], [False, True, False], [False, False, False]],
+        dtype=bool,
+    )
+    mask = xr.DataArray(mask_data, dims=("y", "x"))
+
+    # Test dilation with default radius=1
+    result = binary_dilation(mask)
+    assert isinstance(result, xr.DataArray)
+    assert result.dtype == bool
+    assert result.dims == mask.dims
+    # Dilation should expand the bright region
+    assert result.sum() >= mask.sum()
+
+    # Test with larger radius
+    result = binary_dilation(mask, radius=2)
+    assert isinstance(result, xr.DataArray)
+    assert result.dtype == bool
+
+    # Test with dask array
+    mask_dask = xr.DataArray(da.from_array(mask_data, chunks=(2, 2)), dims=("y", "x"))
+    result = binary_dilation(mask_dask, radius=1)
+    assert isinstance(result, xr.DataArray)
+    result_computed = result.compute()
+    assert result_computed.dtype == bool
+
+
+def test_binary_opening():
+    """Test binary_opening function."""
+    # Create a binary mask with noise (small isolated points)
+    mask_data = np.array(
+        [[False, True, False], [True, True, True], [False, True, False]],
+        dtype=bool,
+    )
+    mask = xr.DataArray(mask_data, dims=("y", "x"))
+
+    # Test opening with default radius=1
+    result = binary_opening(mask)
+    assert isinstance(result, xr.DataArray)
+    assert result.dtype == bool
+    assert result.dims == mask.dims
+    # Opening should remove small objects (erosion then dilation)
+
+    # Test with larger radius
+    result = binary_opening(mask, radius=2)
+    assert isinstance(result, xr.DataArray)
+    assert result.dtype == bool
+
+    # Test with dask array
+    mask_dask = xr.DataArray(da.from_array(mask_data, chunks=(2, 2)), dims=("y", "x"))
+    result = binary_opening(mask_dask, radius=1)
+    assert isinstance(result, xr.DataArray)
+    result_computed = result.compute()
+    assert result_computed.dtype == bool
+
+    # Test with 3D data
+    mask_3d = np.array(
+        [
+            [[True, False], [False, True]],
+            [[False, True], [True, False]],
+        ],
+        dtype=bool,
+    )
+    mask_3d_da = xr.DataArray(mask_3d, dims=("time", "y", "x"))
+    result = binary_opening(mask_3d_da, radius=1)
+    assert isinstance(result, xr.DataArray)
+    assert result.ndim == 3
+    assert result.dtype == bool
+
+
+def test_binary_closing():
+    """Test binary_closing function."""
+    # Create a binary mask with holes (small isolated zeros in bright region)
+    mask_data = np.array(
+        [[True, True, True], [True, False, True], [True, True, True]],
+        dtype=bool,
+    )
+    mask = xr.DataArray(mask_data, dims=("y", "x"))
+
+    # Test closing with default radius=1
+    result = binary_closing(mask)
+    assert isinstance(result, xr.DataArray)
+    assert result.dtype == bool
+    assert result.dims == mask.dims
+    # Closing should fill small holes (dilation then erosion)
+    # The center hole should be filled
+    assert result[1, 1]
+
+    # Test with larger radius
+    result = binary_closing(mask, radius=2)
+    assert isinstance(result, xr.DataArray)
+    assert result.dtype == bool
+
+    # Test with dask array
+    mask_dask = xr.DataArray(da.from_array(mask_data, chunks=(2, 2)), dims=("y", "x"))
+    result = binary_closing(mask_dask, radius=1)
+    assert isinstance(result, xr.DataArray)
+    result_computed = result.compute()
+    assert result_computed.dtype == bool
+    # The hole should be filled
+    assert result_computed.values[1, 1]
+
+    # Test with 3D data
+    mask_3d = np.array(
+        [
+            [[True, True], [True, False]],
+            [[False, True], [True, True]],
+        ],
+        dtype=bool,
+    )
+    mask_3d_da = xr.DataArray(mask_3d, dims=("time", "y", "x"))
+    result = binary_closing(mask_3d_da, radius=1)
+    assert isinstance(result, xr.DataArray)
+    assert result.ndim == 3
+    assert result.dtype == bool
+
+
+def test_binary_operations_with_coords():
+    """Test binary operations preserve coordinates."""
+    mask_data = np.array(
+        [[False, True, False], [True, True, True], [False, True, False]],
+        dtype=bool,
+    )
+    mask = xr.DataArray(
+        mask_data,
+        dims=("y", "x"),
+        coords={"y": np.arange(3), "x": np.arange(3)},
+    )
+
+    # Test all binary operations preserve coordinates
+    for _, func in [
+        ("erosion", binary_erosion),
+        ("dilation", binary_dilation),
+        ("opening", binary_opening),
+        ("closing", binary_closing),
+    ]:
+        result = func(mask)
+        assert result.dims == mask.dims
+        assert "y" in result.coords
+        assert "x" in result.coords
+        assert result.dtype == bool
+
+
+def test_binary_operations_edge_cases():
+    """Test binary operations with edge case inputs."""
+    # All False mask
+    mask_all_false = xr.DataArray(np.zeros((3, 3), dtype=bool), dims=("y", "x"))
+    result = binary_erosion(mask_all_false)
+    assert result.dtype == bool
+    assert not result.any()
+
+    # All True mask
+    mask_all_true = xr.DataArray(np.ones((3, 3), dtype=bool), dims=("y", "x"))
+    result = binary_dilation(mask_all_true)
+    assert result.dtype == bool
+    assert result.all()
+
+    # Single pixel mask
+    mask_single = xr.DataArray(np.array([[True]], dtype=bool), dims=("y", "x"))
+    for func in [binary_erosion, binary_dilation, binary_opening, binary_closing]:
+        result = func(mask_single)
+        assert isinstance(result, xr.DataArray)
+        assert result.dtype == bool

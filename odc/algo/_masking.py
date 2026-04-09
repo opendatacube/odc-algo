@@ -391,7 +391,7 @@ def xr_apply_morph_op(
 
     """
     import dask_image.ndmorph
-    import scipy.ndimage
+    import skimage.morphology
 
     ops = (
         {
@@ -402,10 +402,10 @@ def xr_apply_morph_op(
         }
         if dask.is_dask_collection(xx.data)
         else {
-            "dilation": scipy.ndimage.binary_dilation,
-            "erosion": scipy.ndimage.binary_erosion,
-            "opening": scipy.ndimage.binary_opening,
-            "closing": scipy.ndimage.binary_closing,
+            "dilation": skimage.morphology.dilation,
+            "erosion": skimage.morphology.erosion,
+            "opening": skimage.morphology.opening,
+            "closing": skimage.morphology.closing,
         }
     )
     assert operation in ops
@@ -461,15 +461,15 @@ def mask_cleanup_np(
     :param mask: Binary image to process
     :param mask_filters: Iterable tuples of morphological operations to apply on mask
     """
-    import skimage.morphology as morph
+    import skimage.morphology
 
     assert mask.dtype == "bool"
 
     ops = {
-        "opening": morph.binary_opening,
-        "closing": morph.binary_closing,
-        "dilation": morph.binary_dilation,
-        "erosion": morph.binary_erosion,
+        "opening": skimage.morphology.opening,
+        "closing": skimage.morphology.closing,
+        "dilation": skimage.morphology.dilation,
+        "erosion": skimage.morphology.erosion,
     }
 
     mask_filters = (

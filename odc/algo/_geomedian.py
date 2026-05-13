@@ -119,7 +119,11 @@ def xr_geomedian(ds, axis="time", where=None, **kw):
         return data
 
     dims = [dim for dim in xx.dims if dim is not axis]  # Drop `time`
-    cc = {coord_name: coord for (coord_name, coord) in xx.coords.items() if axis not in coord.dims}
+    cc = {
+        coord_name: coord
+        for (coord_name, coord) in xx.coords.items()
+        if axis not in coord.dims
+    }
     xx_out = xr.DataArray(data, dims=dims, coords=cc)
 
     if ds is None:
@@ -440,7 +444,11 @@ def geomedian_with_mads(
 
     drop_dim = yxbt.dims[3]
     dims = yxbt.dims[:3]
-    coords = {coord_name: coord for (coord_name, coord) in yxbt.coords.items() if drop_dim not in coord.dims}
+    coords = {
+        coord_name: coord
+        for (coord_name, coord) in yxbt.coords.items()
+        if drop_dim not in coord.dims
+    }
 
     result = xr.DataArray(
         data=_gm[:, :, :nb].astype(yxbt.dtype),

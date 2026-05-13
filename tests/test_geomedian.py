@@ -28,7 +28,13 @@ def test_geomedian_yxbt():
     srcoords = "epsg:1234"
     src = DataArray(
         yxbt,
-        coords={"x": xcoords, "y": ycoords, "time": tcoords, "band": bcoords, "spatial_ref": srcoords},
+        coords={
+            "x": xcoords,
+            "y": ycoords,
+            "time": tcoords,
+            "band": bcoords,
+            "spatial_ref": srcoords,
+        },
         dims=["y", "x", "band", "time"],
     )
     result = geomedian_with_mads(src)
@@ -219,6 +225,7 @@ def test_geomedian_mem():
     assert "bcmad" in complete_result.data_vars
     assert "band" not in complete_result.dims
     assert "x" in complete_result.dims
+
 
 # @pytest.mark.skip
 def test_geomedian_nomads():

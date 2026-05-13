@@ -14,7 +14,7 @@ import xarray as xr
 from dask.base import tokenize
 from dask.graph_manipulation import bind
 
-from ._dask import _roi_from_chunks, unpack_chunks, randomize
+from ._dask import _roi_from_chunks, randomize, unpack_chunks
 
 if TYPE_CHECKING:
     from collections.abc import Hashable

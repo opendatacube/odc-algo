@@ -14,7 +14,7 @@ import xarray as xr
 from dask.base import tokenize
 from dask.graph_manipulation import bind
 
-from ._dask import _roi_from_chunks, unpack_chunks
+from ._dask import _roi_from_chunks, randomize, unpack_chunks
 
 if TYPE_CHECKING:
     from collections.abc import Hashable
@@ -312,7 +312,7 @@ def _da_from_mem(
     darr = da.block(arr.tolist())
 
     # only to retain the node/task name
-    return darr.map_blocks(lambda x: x, name=name)
+    return darr.map_blocks(lambda x: x, name=randomize(name))
 
 
 def da_mem_sink(xx: da.Array, chunks: tuple[int, ...], name="memsink") -> da.Array:

@@ -432,7 +432,12 @@ def geomedian_with_mads(
         num_threads=num_threads,
     )
     _gm = da.map_blocks(
-        op, yxbt.data, dtype="float32", drop_axis=3, chunks=chunks, name="geomedian"
+        op,
+        yxbt.data,
+        dtype="float32",
+        drop_axis=3,
+        chunks=chunks,
+        name=randomize("geomedian"),
     )
 
     if out_chunks is not None:

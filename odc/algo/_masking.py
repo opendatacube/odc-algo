@@ -734,6 +734,7 @@ def _da_fuse_with_custom_op(xx: da.Array, op, name="fuse") -> da.Array:
     Out[0, y, x] = op(In[0:1, y, x], In[1:2, y, x], In[2:3, y, x]...)
 
     """
+    name = randomize(name)
     can_do_flat = all(ch == 1 for ch in xx.chunks[0])
     if not can_do_flat:
         slices = [xx[i : i + 1] for i in range(xx.shape[0])]
@@ -741,7 +742,6 @@ def _da_fuse_with_custom_op(xx: da.Array, op, name="fuse") -> da.Array:
 
     chunks, _ = _get_chunks_asarray(xx)
     dsk = {}
-    name = randomize(name)
     for idx in np.ndindex(chunks.shape[1:]):
         blocks = chunks[(slice(None), *idx)].ravel()
         dsk[(name, 0, *idx)] = (op, *blocks)

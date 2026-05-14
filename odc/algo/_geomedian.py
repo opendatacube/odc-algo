@@ -118,8 +118,12 @@ def xr_geomedian(ds, axis="time", where=None, **kw):
     if xx is None:
         return data
 
-    dims = xx.dims[:-1]
-    cc = {k: xx.coords[k] for k in dims}
+    dims = [dim for dim in xx.dims if dim is not axis]  # Drop `time`
+    cc = {
+        coord_name: coord
+        for (coord_name, coord) in xx.coords.items()
+        if axis not in coord.dims
+    }
     xx_out = xr.DataArray(data, dims=dims, coords=cc)
 
     if ds is None:
@@ -443,8 +447,14 @@ def geomedian_with_mads(
     if out_chunks is not None:
         _gm = _gm.rechunk(out_chunks)
 
+    drop_dim = yxbt.dims[3]
     dims = yxbt.dims[:3]
-    coords = {k: yxbt.coords[k] for k in dims}
+    coords = {
+        coord_name: coord
+        for (coord_name, coord) in yxbt.coords.items()
+        if drop_dim not in coord.dims
+    }
+
     result = xr.DataArray(
         data=_gm[:, :, :nb].astype(yxbt.dtype),
         dims=dims,

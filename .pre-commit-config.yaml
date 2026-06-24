@@ -46,11 +46,13 @@ repos:
           args: [--whitespaces-count, '2'] 
         - id: insert-license
           files: ./(.*).py$
+          exclude: (^|/)_vendored_.*\.py$
           args:
             - --license-filepath
             - license-template.txt
             - --use-current-year
             - --no-extra-eol
+
     - repo: local
       hooks:
       - id: pylint

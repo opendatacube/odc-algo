@@ -369,7 +369,6 @@ def binary_erosion(
     radius: int = 1,
     **kw,
 ) -> xr.DataArray:
-    # TODO: upgrade
     return mask_cleanup(xx, [("erosion", radius)])
 
 
@@ -378,7 +377,6 @@ def binary_dilation(
     radius: int = 1,
     **kw,
 ) -> xr.DataArray:
-    # TODO: upgrade
     return mask_cleanup(xx, [("dilation", radius)])
 
 
@@ -387,7 +385,6 @@ def binary_opening(
     radius: int = 1,
     **kw,
 ) -> xr.DataArray:
-    # TODO: upgrade
     return mask_cleanup(xx, [("opening", radius)])
 
 

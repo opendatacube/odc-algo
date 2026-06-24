@@ -9,6 +9,7 @@ Also converting between float[with nans] and int[with nodata].
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from functools import partial
 from typing import TYPE_CHECKING, Any, Literal, TypeAlias
 
@@ -435,7 +436,13 @@ def _compute_overlap_depth(r: Iterable[int], ndim: int) -> tuple[int, ...]:
     return (0,) * (ndim - 2) + (_r, _r)
 
 
-def _apply_2d(func, data_array, *args, squeeze=False, **kwargs):
+def _apply_2d(
+    func: Callable[[xr.DataArray], xr.DataArray],
+    data_array: xr.DataArray,
+    *args,
+    squeeze: bool = False,
+    **kwargs,
+) -> xr.DataArray:
     if squeeze:
         data_array = data_array.squeeze()
     out = func(data_array, *args, **kwargs)
@@ -446,7 +453,13 @@ def _apply_2d(func, data_array, *args, squeeze=False, **kwargs):
     return out
 
 
-def spatial_apply(func, data_array, *args, squeeze=False, **kwargs):
+def spatial_apply(
+    func: Callable[[xr.DataArray], xr.DataArray],
+    data_array: xr.DataArray,
+    *args,
+    squeeze: bool = False,
+    **kwargs,
+) -> xr.DataArray:
     # pylint: disable=import-outside-toplevel,unused-import
     import odc.geo.xr  # noqa: F401
 

@@ -9,7 +9,6 @@ import pytest
 import xarray as xr
 
 from odc.algo._masking import (
-    _disk,
     _enum_to_mask_numexpr,
     _fuse_mean_np,
     _gap_fill_np,
@@ -244,111 +243,51 @@ def test_fuse_mean_np():
 
 def test_mask_cleanup_np():
     mask = np.ndarray(
-        shape=(2, 2), dtype=bool, buffer=np.array([[True, False], [False, True]])
+        shape=(3, 3),
+        dtype=bool,
+        buffer=np.array(
+            [[True, True, False], [True, False, False], [False, False, True]]
+        ),
     )
 
     mask_filter_with_opening_dilation = [("opening", 1), ("dilation", 1)]
     result = mask_cleanup_np(mask, mask_filter_with_opening_dilation)
     expected_result = np.array(
-        [[False, False], [False, False]],
+        [[True, True, True], [True, True, False], [True, False, False]],
     )
     assert (result == expected_result).all()
 
     mask_filter_opening = [("opening", 1), ("dilation", 0)]
     result = mask_cleanup_np(mask, mask_filter_opening)
     expected_result = np.array(
-        [[False, False], [False, False]],
+        [[True, True, False], [True, False, False], [False, False, False]]
     )
     assert (result == expected_result).all()
 
     mask_filter_with_dilation = [("opening", 0), ("dilation", 1)]
     result = mask_cleanup_np(mask, mask_filter_with_dilation)
     expected_result = np.array(
-        [[True, True], [True, True]],
+        [[True, True, True], [True, True, True], [True, True, True]]
     )
     assert (result == expected_result).all()
 
     mask_filter_with_closing = [("closing", 1), ("opening", 1), ("dilation", 1)]
     result = mask_cleanup_np(mask, mask_filter_with_closing)
     expected_result = np.array(
-        [[True, True], [True, True]],
+        [[True, True, True], [True, True, True], [True, True, True]]
     )
     assert (result == expected_result).all()
 
     mask_filter_with_all_zero = [("closing", 0), ("opening", 0), ("dilation", 0)]
     result = mask_cleanup_np(mask, mask_filter_with_all_zero)
     expected_result = np.array(
-        [[True, False], [False, True]],
+        [[True, True, False], [True, False, False], [False, False, True]]
     )
     assert (result == expected_result).all()
 
     invalid_mask_filter = [("oppening", 1), ("dilation", 1)]
     with pytest.raises(ValueError):
         mask_cleanup_np(mask, invalid_mask_filter)
-
-
-def test_disk():
-    # Test radius=1, 2D kernel (plus/cross pattern)
-    result = _disk(1, 2)
-    expected_result = np.array(
-        [[False, True, False], [True, True, True], [False, True, False]],
-    )
-    assert (result == expected_result).all()
-    assert result.ndim == expected_result.ndim
-    assert result.shape == (3, 3)
-
-    # Test radius=0 (single pixel)
-    result = _disk(0, 2)
-    expected_result = np.array([[True]])
-    assert (result == expected_result).all()
-    assert result.shape == (1, 1)
-
-    # Test radius=2, 2D kernel (larger disk)
-    result = _disk(2, 2)
-    assert result.ndim == 2
-    assert result.shape == (5, 5)
-    # Center should always be True
-    assert result[2, 2]
-    # Corners should be False for disk of radius 2
-    assert not result[0, 0]
-    assert not result[0, 4]
-    assert not result[4, 0]
-    assert not result[4, 4]
-
-    # Test 3D kernel
-    result = _disk(1, 3)
-    assert result.ndim == 3
-    # Center should be True
-    center = tuple(s // 2 for s in result.shape)
-    assert result[center]
-
-    # Test with decomposition='sequence' returns tuple format
-    result = _disk(1, 2, decomposition="sequence")
-    assert isinstance(result, tuple)
-    assert len(result) > 0
-    # Each element should be a tuple of (array, count)
-    for arr, count in result:
-        assert isinstance(arr, np.ndarray)
-        assert isinstance(count, int)
-        assert arr.ndim == 2
-
-    # Test with decomposition='crosses' returns tuple format
-    result = _disk(1, 2, decomposition="crosses")
-    assert isinstance(result, tuple)
-    assert len(result) > 0
-    # Each element should be a tuple of (array, count)
-    for arr, count in result:
-        assert isinstance(arr, np.ndarray)
-        assert isinstance(count, int)
-        assert arr.ndim == 2
-
-    # Test 3D with decomposition
-    result = _disk(1, 3, decomposition="sequence")
-    assert isinstance(result, tuple)
-    for arr, count in result:
-        assert isinstance(arr, np.ndarray)
-        assert arr.ndim == 3
-        assert isinstance(count, int)
 
 
 def test_mask_cleanup():

@@ -5,6 +5,7 @@
 import dask
 import dask.array as da
 import numpy as np
+import pandas as pd
 import pytest
 import xarray as xr
 
@@ -571,3 +572,18 @@ def test_binary_operations_edge_cases():
         result = func(mask_single)
         assert isinstance(result, xr.DataArray)
         assert result.dtype == bool
+
+def test_masking_with_multi_index():
+    """Test binary operations with data arrays that use MultiIndex."""
+
+    tuples = [
+        (np.datetime64(f"2000-01-01T0{i}"), np.datetime64("2000-01-01"))
+        for i in range(3)
+    ]
+    index = pd.MultiIndex.from_tuples(tuples, names=["time", "solar_day"])
+    mask = xr.DataArray(np.zeros((3, 3, 3), dtype=bool), dims=("spec", "y", "x"))
+    mask = mask.assign_coords(xr.Coordinates.from_pandas_multiindex(index, "spec"))
+
+    result = binary_erosion(mask)
+    assert result.dtype == bool
+    assert not result.any()

@@ -573,6 +573,7 @@ def test_binary_operations_edge_cases():
         assert isinstance(result, xr.DataArray)
         assert result.dtype == bool
 
+
 def test_masking_with_multi_index():
     """Test binary operations with data arrays that use MultiIndex."""
 

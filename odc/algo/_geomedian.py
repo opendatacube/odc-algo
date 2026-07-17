@@ -5,12 +5,12 @@
 """Helper methods for Geometric Median computation."""
 
 import functools
+from typing import Literal
 
 import dask
 import dask.array as da
 import numpy as np
 import xarray as xr
-from typing import Literal
 
 from ._dask import randomize, reshape_yxbt
 from ._masking import from_float_np, to_float_np
@@ -529,8 +529,8 @@ def xr_weighted_geomedian(
         Input data as a Dask-backed xarray object containing a temporal stack
         of observations. When a Dataset is supplied, bands are reshaped into
         the YXBT format expected by the geomedian implementation
-        (Y=rows, X=columns, B=bands, T=time). 
-        
+        (Y=rows, X=columns, B=bands, T=time).
+
     band1 : str, default="nbart_nir"
         Name of the first band used to calculate the weighting index.
         Typically the near-infrared band.
@@ -557,7 +557,7 @@ def xr_weighted_geomedian(
 
     alpha : float, optional
         Shape parameter controlling the lower portion of the weighting
-        curve. 
+        curve.
 
     gamma : float, optional
         Shape parameter controlling the upper portion of the weighting
@@ -565,8 +565,8 @@ def xr_weighted_geomedian(
 
     beta : float, optional
         Additional weighting function parameter passed directly to the
-        underlying PCM implementation. 
-        
+        underlying PCM implementation.
+
     sigma : float, optional
         Smoothing or spread parameter for the weighting function.
         Larger values generally produce a more gradual transition between
@@ -611,11 +611,11 @@ def xr_weighted_geomedian(
     High-dimensional pixel composites from Earth observation time series.
     *Nature Communications*, 10, 3417.
     https://doi.org/10.1038/s41467-019-13276-1
-    
+
     """
 
     from geomad import nanwgeomedian_pcm
-    
+
     # Geomedian implementation requires Dask-backed inputs.
     if not dask.is_dask_collection(src):
         raise ValueError("This method only works on Dask inputs")
@@ -643,9 +643,7 @@ def xr_weighted_geomedian(
     # Geomedian expects time and band dimensions to be contained
     # within a single Dask block.
     if yxbt.data.numblocks[2:4] != (1, 1):
-        raise ValueError(
-            "There should be one dask block along time and band dimension"
-        )
+        raise ValueError("There should be one dask block along time and band dimension")
 
     chunks = (*yxbt.chunks[:2], (nb,))
 
@@ -654,11 +652,10 @@ def xr_weighted_geomedian(
         band_index = yxbt.get_index("band")
         bi = band_index.get_loc(band1)
         bj = band_index.get_loc(band2)
-    
+
     except KeyError as e:
         raise ValueError(
-            f"Band '{e.args[0]}' not found. "
-            f"Available bands: {list(band_index)}"
+            f"Band '{e.args[0]}' not found. Available bands: {list(band_index)}"
         ) from None
 
     # Configure the weighted geomedian operator. Band indices define

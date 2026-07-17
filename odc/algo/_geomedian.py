@@ -512,15 +512,10 @@ def xr_weighted_geomedian(
     weight to each observation based on a normalised difference index calculated
     from two nominated bands (typically NIR and Red - NDVI). This allows the composite
     to preferentially select observations with particular spectral
-    characteristics, such as:
-
-    - **Greenest Earth composites**: favouring observations with high NDVI
-      values (dense vegetation).
-    - **Barest Earth composites**: favouring observations with low NDVI values
-      (minimal vegetation cover).
+    characteristics
 
     The underlying geomedian implementation is based on the pixel composite
-    method described by Roberts et al. (2019), which uses a geometric median
+    method described by Roberts et al. (2017), which uses a geometric median
     in spectral space to generate robust Earth observation composites.
 
     Parameters
@@ -607,10 +602,9 @@ def xr_weighted_geomedian(
 
     References
     ----------
-    Roberts, D., Mueller, N., & McIntyre, A. (2019).
-    High-dimensional pixel composites from Earth observation time series.
-    *Nature Communications*, 10, 3417.
-    https://doi.org/10.1038/s41467-019-13276-1
+    Roberts, D., Mueller, N., & Mcintyre, A. (2017). High-dimensional pixel
+    composites from earth observation time series. IEEE Transactions
+    on Geoscience and Remote Sensing, 55(11), 6254-6264.
 
     """
 

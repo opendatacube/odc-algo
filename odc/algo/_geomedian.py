@@ -10,6 +10,7 @@ import dask
 import dask.array as da
 import numpy as np
 import xarray as xr
+from typing import Literal
 
 from ._dask import randomize, reshape_yxbt
 from ._masking import from_float_np, to_float_np
@@ -480,5 +481,238 @@ def geomedian_with_mads(
         count = _gm[:, :, next_stat].astype("uint16")
         next_stat += 1
         result["count"] = xr.DataArray(data=count, dims=dims[:2], coords=result.coords)
+
+    return result
+
+
+def xr_weighted_geomedian(
+    src: xr.Dataset | xr.DataArray,
+    band1: str = "nbart_nir",
+    band2: str = "nbart_red",
+    rho: float = 6.0,
+    delta: float = 1.0,
+    xi: float = 0.0,
+    alpha: float | None = None,
+    gamma: float | None = None,
+    beta: float | None = None,
+    sigma: float | None = None,
+    out_chunks: tuple[int, int, int] | None = None,
+    reshape_strategy: Literal["mem", "yxbt"] = "yxbt",
+    eps: float = 0.0001,
+    maxiters: int = 1000,
+    num_threads: int = 1,
+    **kw,
+) -> xr.Dataset:
+    """
+    Compute a weighted geomedian composite from a time series of Earth observation data.
+
+    This function applies Geoscience Australia's weighted geomedian algorithm
+    (`geomad.nanwgeomedian_pcm`) to a Dask-backed xarray Dataset or DataArray.
+    The implementation extends the standard geomedian approach by assigning a
+    weight to each observation based on a normalised difference index calculated
+    from two nominated bands (typically NIR and Red - NDVI). This allows the composite
+    to preferentially select observations with particular spectral
+    characteristics, such as:
+
+    - **Greenest Earth composites**: favouring observations with high NDVI
+      values (dense vegetation).
+    - **Barest Earth composites**: favouring observations with low NDVI values
+      (minimal vegetation cover).
+
+    The underlying geomedian implementation is based on the pixel composite
+    method described by Roberts et al. (2019), which uses a geometric median
+    in spectral space to generate robust Earth observation composites.
+
+    Parameters
+    ----------
+    src : xr.Dataset or xr.DataArray
+        Input data as a Dask-backed xarray object containing a temporal stack
+        of observations. When a Dataset is supplied, bands are reshaped into
+        the YXBT format expected by the geomedian implementation
+        (Y=rows, X=columns, B=bands, T=time). 
+        
+    band1 : str, default="nbart_nir"
+        Name of the first band used to calculate the weighting index.
+        Typically the near-infrared band.
+
+    band2 : str, default="nbart_red"
+        Name of the second band used to calculate the weighting index.
+        Typically the red band.
+
+    rho : float, default=6.0
+        Weighting strength parameter passed to
+        ``geomad.nanwgeomedian_pcm``. Larger values increase the influence
+        of the weighting index on compositing behaviour, resulting in stronger
+        preference for observations with extreme index values.
+
+    delta : float, default=1.0
+        Scaling parameter controlling the amplitude of the weighting function.
+        Larger values increase the separation between highly weighted and
+        weakly weighted observations.
+
+    xi : float, default=0.0
+        Centre point of the weighting function. For NDVI-based weighting,
+        this determines the index value at which observations transition
+        from being down-weighted to up-weighted.
+
+    alpha : float, optional
+        Shape parameter controlling the lower portion of the weighting
+        curve. 
+
+    gamma : float, optional
+        Shape parameter controlling the upper portion of the weighting
+        curve.
+
+    beta : float, optional
+        Additional weighting function parameter passed directly to the
+        underlying PCM implementation. 
+        
+    sigma : float, optional
+        Smoothing or spread parameter for the weighting function.
+        Larger values generally produce a more gradual transition between
+        low-weight and high-weight observations.
+
+    out_chunks : tuple[int, int, int], optional
+        If supplied, rechunk the output array after computation using
+        ``(y, x, band)`` chunk sizes.
+
+    reshape_strategy : {"mem", "yxbt"}, default="yxbt"
+        Strategy used to reshape an input Dataset into the YXBT structure
+        required by the geomedian algorithm.
+
+        - ``"mem"``: Faster when sufficient memory is available on a
+          single-worker system.
+        - ``"yxbt"``: More scalable and suitable for multi-worker Dask
+          deployments.
+
+    eps : float, default=0.0001
+        Convergence tolerance for the iterative geomedian solver.
+        Iteration stops when successive estimates differ by less than this
+        value.
+
+    maxiters : int, default=1000
+        Maximum number of iterations permitted for the geomedian solver
+        for each output pixel.
+
+    num_threads : int, default=1
+        Number of worker threads used internally by the geomedian algorithm.
+        When using Dask, a value of 1 is usually appropriate because
+        parallelism is typically provided by Dask itself.
+
+    Returns
+    -------
+    xr.Dataset
+        An xarray Dataset containing the weighted geomedian composite for each
+        input band.
+
+    References
+    ----------
+    Roberts, D., Mueller, N., & McIntyre, A. (2019).
+    High-dimensional pixel composites from Earth observation time series.
+    *Nature Communications*, 10, 3417.
+    https://doi.org/10.1038/s41467-019-13276-1
+    
+    """
+
+    from geomad import nanwgeomedian_pcm
+    
+    # Geomedian implementation requires Dask-backed inputs.
+    if not dask.is_dask_collection(src):
+        raise ValueError("This method only works on Dask inputs")
+
+    # Convert Dataset inputs into the YXBT layout expected by geomad.
+    if isinstance(src, xr.DataArray):
+        yxbt = src
+    else:
+        ny, nx = kw.get("work_chunks", (100, 100))
+
+        if reshape_strategy == "mem":
+            yxbt = yxbt_sink(src, (ny, nx, -1, -1))
+        elif reshape_strategy == "yxbt":
+            yxbt = reshape_yxbt(src, yx_chunks=(ny, nx))
+        else:
+            raise ValueError(
+                f"Reshape strategy '{reshape_strategy}' not understood "
+                "use one of: mem or yxbt"
+            )
+
+    _, _, nb, _ = yxbt.shape
+
+    assert yxbt.chunks is not None
+
+    # Geomedian expects time and band dimensions to be contained
+    # within a single Dask block.
+    if yxbt.data.numblocks[2:4] != (1, 1):
+        raise ValueError(
+            "There should be one dask block along time and band dimension"
+        )
+
+    chunks = (*yxbt.chunks[:2], (nb,))
+
+    # Find the index values of the bands requested for weighting
+    try:
+        band_index = yxbt.get_index("band")
+        bi = band_index.get_loc(band1)
+        bj = band_index.get_loc(band2)
+    
+    except KeyError as e:
+        raise ValueError(
+            f"Band '{e.args[0]}' not found. "
+            f"Available bands: {list(band_index)}"
+        ) from None
+
+    # Configure the weighted geomedian operator. Band indices define
+    # the normalised-difference weighting metric (e.g. NDVI).
+    op = functools.partial(
+        nanwgeomedian_pcm,
+        bi=bi,
+        bj=bj,
+        rho=rho,
+        delta=delta,
+        xi=xi,
+        alpha=alpha,
+        gamma=gamma,
+        beta=beta,
+        sigma=sigma,
+        eps=eps,
+        maxiters=maxiters,
+        num_threads=num_threads,
+    )
+
+    # Apply the weighted geomedian independently to each spatial block.
+    _wgm = da.map_blocks(
+        op,
+        yxbt.data,
+        dtype="float32",
+        drop_axis=3,
+        chunks=chunks,
+        name=randomize("wgeomedian"),
+    )
+
+    if out_chunks is not None:
+        _wgm = _wgm.rechunk(out_chunks)
+
+    # Reconstruct xarray coordinates and metadata, dropping the
+    # temporal dimension collapsed during compositing.
+    drop_dim = yxbt.dims[3]
+    dims = yxbt.dims[:3]
+
+    coords = {
+        coord_name: coord
+        for coord_name, coord in yxbt.coords.items()
+        if drop_dim not in coord.dims
+    }
+
+    # Construct xarray
+    result = xr.DataArray(
+        data=_wgm[:, :, :nb].astype(yxbt.dtype),
+        dims=dims,
+        coords=coords,
+        attrs=yxbt.attrs,
+    ).to_dataset("band")
+
+    # Propagate source metadata to each output band.
+    for dv in result.data_vars.values():
+        dv.attrs.update(yxbt.attrs)
 
     return result

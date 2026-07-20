@@ -17,6 +17,7 @@ import dask
 import dask.array as da
 import numexpr as ne
 import numpy as np
+import pandas as pd
 import xarray as xr
 from dask.highlevelgraph import HighLevelGraph
 
@@ -443,14 +444,22 @@ def _apply_2d(
     squeeze: bool = False,
     **kwargs,
 ) -> xr.DataArray:
-    if squeeze:
-        data_array = data_array.squeeze()
+    if squeeze and data_array.ndim > 2:
+        data_array = data_array.squeeze(dim for dim in data_array.dims[:-2])
     out = func(data_array, *args, **kwargs)
     if isinstance(out, (np.ndarray, dask.array.Array)):
         return xr.DataArray(
             out, attrs=data_array.attrs, coords=data_array.coords, dims=data_array.dims
         )
     return out
+
+
+def _multiindex_level_coord_names(data_array: xr.DataArray) -> set[str]:
+    names = set()
+    for index in data_array.indexes.values():
+        if isinstance(index, pd.MultiIndex):
+            names.update(name for name in index.names if name is not None)
+    return names
 
 
 def spatial_apply(
@@ -466,16 +475,53 @@ def spatial_apply(
     spatial_dims = data_array.odc.spatial_dims or ()
     non_spatial_dims = tuple(d for d in data_array.dims if d not in spatial_dims)
 
-    func = partial(_apply_2d, func)
+    if not non_spatial_dims:
+        return func(data_array, *args, **kwargs)
 
-    if non_spatial_dims:
-        grouped = data_array.stack(non_spatial_dims=non_spatial_dims).groupby(
-            "non_spatial_dims"
-        )
-        mapped = grouped.map(func, *args, squeeze=squeeze, **kwargs)
-        return mapped.unstack("non_spatial_dims").transpose(*data_array.dims)
+    # To support the legacy MultiIndex used by odc-stats, we have to mess around with a lot of coords
+    stack_dim = "__non_spatial_stack__"
+    func = partial(_apply_2d, func, squeeze=squeeze)
 
-    return func(data_array, *args, **kwargs)
+    stacked = data_array.stack(
+        {stack_dim: non_spatial_dims}, create_index=False
+    ).transpose(stack_dim, *spatial_dims)
+    # Give the stacked dimension a simple coordinate so it can be grouped.
+    stacked = stacked.assign_coords({stack_dim: np.arange(stacked.sizes[stack_dim])})
+
+    grouped = stacked.groupby(stack_dim)
+    mapped = grouped.map(func, *args, **kwargs)
+    remaining_dims = [dim for dim in mapped.dims if dim != stack_dim]
+
+    mapped = mapped.transpose(stack_dim, *remaining_dims)
+
+    new_shape = [data_array.sizes[d] for d in non_spatial_dims] + [
+        mapped.sizes[d] for d in remaining_dims
+    ]
+
+    result = xr.DataArray(
+        mapped.data.reshape(new_shape),
+        dims=list(non_spatial_dims) + remaining_dims,
+        name=mapped.name,
+        attrs=mapped.attrs,
+    )
+
+    multiindex_level_coords = _multiindex_level_coord_names(data_array)
+
+    for coord_name, coord in data_array.coords.items():
+        # Skip level coordinates of a MultiIndex, such as `time`,
+        # `solar_day`, etc. They are restored automatically when the
+        # parent MultiIndex coordinate, e.g. `spec`, is assigned.
+        if coord_name in multiindex_level_coords:
+            continue
+
+        if all(dim in result.dims for dim in coord.dims):
+            result = result.assign_coords({coord_name: coord})
+
+    # Preserve original dimension order where possible.
+    preferred_order = [dim for dim in data_array.dims if dim in result.dims]
+    extra_dims = [dim for dim in result.dims if dim not in preferred_order]
+
+    return result.transpose(*(preferred_order + extra_dims))
 
 
 def xr_apply_morph_ops(
@@ -542,7 +588,9 @@ def mask_cleanup(
     )
 
     return spatial_apply(
-        xr_apply_morph_ops, mask, mask_filters=mask_filters, name=name, squeeze=True
+        partial(xr_apply_morph_ops, mask_filters=mask_filters, name=name),
+        mask,
+        squeeze=True,
     )
 
 

@@ -517,7 +517,7 @@ def xr_weighted_geomedian(
     The underlying geomedian implementation is based on the pixel composite
     method described by Roberts et al. (2017), which uses a geometric median
     in spectral space to generate robust Earth observation composites.
-    
+
     NOTE: Default parameter values are not optimised for any task, users of this
     function will need to determine the correct values for their task.
 

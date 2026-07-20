@@ -517,6 +517,9 @@ def xr_weighted_geomedian(
     The underlying geomedian implementation is based on the pixel composite
     method described by Roberts et al. (2017), which uses a geometric median
     in spectral space to generate robust Earth observation composites.
+    
+    NOTE: Default parameter values are not optimised for any task, users of this
+    function will need to determine the correct values for their task.
 
     Parameters
     ----------
@@ -551,21 +554,20 @@ def xr_weighted_geomedian(
         from being down-weighted to up-weighted.
 
     alpha : float, optional
-        Shape parameter controlling the lower portion of the weighting
-        curve.
+        Additional weighting function parameter passed directly to the
+        underlying PCM implementation.
 
     gamma : float, optional
-        Shape parameter controlling the upper portion of the weighting
-        curve.
+        Additional weighting function parameter passed directly to the
+        underlying PCM implementation.
 
     beta : float, optional
         Additional weighting function parameter passed directly to the
         underlying PCM implementation.
 
     sigma : float, optional
-        Smoothing or spread parameter for the weighting function.
-        Larger values generally produce a more gradual transition between
-        low-weight and high-weight observations.
+        Additional weighting function parameter passed directly to the
+        underlying PCM implementation.
 
     out_chunks : tuple[int, int, int], optional
         If supplied, rechunk the output array after computation using

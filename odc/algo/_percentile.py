@@ -14,7 +14,15 @@ from dask.base import tokenize
 from ._masking import keep_good_np
 
 
-def np_percentile(xx, percentile, nodata):
+def np_percentile(xx, percentile, nodata, min_valid: int = 3):
+    """Compute a percentile along axis 0, treating pixels with too few valid
+    observations as nodata.
+
+    :param min_valid: A pixel needs at least this many valid (non-nodata)
+        observations along axis 0 to get a value; pixels with fewer are set
+        to `nodata`. Defaults to 3, matching this function's historical,
+        previously-hardcoded behaviour.
+    """
     if np.isnan(nodata):
         high = True
         mask = ~np.isnan(xx)
@@ -37,13 +45,14 @@ def np_percentile(xx, percentile, nodata):
 
     xx = xx.take(indices).reshape(xx.shape[1:])
 
-    return keep_good_np(xx, (valid_counts >= 3), nodata)
+    return keep_good_np(xx, (valid_counts >= min_valid), nodata)
 
 
 def xr_quantile_bands(
     src: xr.Dataset,
     quantiles: Sequence,
     nodata,
+    min_valid: int = 3,
 ) -> xr.Dataset:
     """
     Calculates the quantiles of the input data along the time dimension.
@@ -57,6 +66,11 @@ def xr_quantile_bands(
     :param quantiles: A sequence of quantiles in the [0.0, 1.0] range
 
     :param nodata: The `nodata` value
+
+    :param min_valid: A pixel needs at least this many valid (non-nodata)
+        observations along the time dimension to get a value; pixels with
+        fewer are set to `nodata`. Defaults to 3, matching this function's
+        historical, previously-hardcoded behaviour.
     """
     # pylint: disable=undefined-loop-variable
 
@@ -68,19 +82,26 @@ def xr_quantile_bands(
             if len(xx.chunks[0]) > 1:
                 xx_data = xx_data.rechunk({0: -1})
 
-        tk = tokenize(xx_data, quantiles, nodata)
+        tk = tokenize(xx_data, quantiles, nodata, min_valid)
         for quantile in quantiles:
             name = f"{band}_pc_{int(100 * quantile)}"
             if dask.is_dask_collection(xx_data):
                 yy = da.map_blocks(
-                    partial(np_percentile, percentile=quantile, nodata=nodata),
+                    partial(
+                        np_percentile,
+                        percentile=quantile,
+                        nodata=nodata,
+                        min_valid=min_valid,
+                    ),
                     xx_data,
                     drop_axis=0,
                     meta=np.array([], dtype=xx.dtype),
                     name=f"{name}-{tk}",
                 )
             else:
-                yy = np_percentile(xx_data, percentile=quantile, nodata=nodata)
+                yy = np_percentile(
+                    xx_data, percentile=quantile, nodata=nodata, min_valid=min_valid
+                )
             data_vars[name] = xr.DataArray(yy, dims=xx.dims[1:], attrs=xx.attrs)
 
     coords = {dim: src.coords[dim] for dim in xx.dims[1:]}
@@ -91,6 +112,7 @@ def xr_quantile(
     src: xr.Dataset,
     quantiles: Sequence,
     nodata,
+    min_valid: int = 3,
 ) -> xr.Dataset:
     """
     Calculates the percentiles of the input data along the time dimension.
@@ -104,6 +126,11 @@ def xr_quantile(
     :param percentiles: A sequence of quantiles in the [0.0, 1.0] range
 
     :param nodata: The `nodata` value
+
+    :param min_valid: A pixel needs at least this many valid (non-nodata)
+        observations along the time dimension to get a value; pixels with
+        fewer are set to `nodata`. Defaults to 3, matching this function's
+        historical, previously-hardcoded behaviour.
     """
 
     data_vars = {}
@@ -115,20 +142,27 @@ def xr_quantile(
             if len(xx.chunks[0]) > 1:
                 xx_data = xx_data.rechunk({0: -1})
 
-        tk = tokenize(xx_data, quantiles, nodata)
+        tk = tokenize(xx_data, quantiles, nodata, min_valid)
         data = []
         for quantile in quantiles:
             name = f"{band}_pc_{int(100 * quantile)}"
             if dask.is_dask_collection(xx_data):
                 yy = da.map_blocks(
-                    partial(np_percentile, percentile=quantile, nodata=nodata),
+                    partial(
+                        np_percentile,
+                        percentile=quantile,
+                        nodata=nodata,
+                        min_valid=min_valid,
+                    ),
                     xx_data,
                     drop_axis=0,
                     meta=np.array([], dtype=xx.dtype),
                     name=f"{name}-{tk}",
                 )
             else:
-                yy = np_percentile(xx_data, percentile=quantile, nodata=nodata)
+                yy = np_percentile(
+                    xx_data, percentile=quantile, nodata=nodata, min_valid=min_valid
+                )
             data.append(yy)
 
         if dask.is_dask_collection(yy):
